@@ -1,0 +1,144 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap');
+
+:root {
+  /* Light Theme Colors */
+  --bg-primary: #f8f9fa;
+  --bg-secondary: #ffffff;
+  --bg-panel: #ffffff;
+  --bg-panel-hover: #f1f3f5;
+  
+  /* Text */
+  --text-primary: #212529;
+  --text-secondary: #495057;
+  --text-muted: #868e96;
+
+  /* Accents */
+  --accent-main: #E92247;
+  --accent-main-light: #fadde2;
+  --accent-main-dark: #cc1e3e;
+  
+  /* Danger / Success / Info */
+  --danger: #dc3545;
+  --success: #20c997;
+  
+  /* Effects */
+  --glass-border: 1px solid rgba(0, 0, 0, 0.05);
+  --glass-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.05);
+  --glow-main: 0 0 20px rgba(233, 34, 71, 0.15);
+  
+  /* Typography */
+  --font-sans: 'Inter', sans-serif;
+  --font-serif: 'Playfair Display', serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: 0.02em;
+}
+
+a {
+  color: var(--accent-main);
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+a:hover {
+  color: var(--accent-main-dark);
+}
+
+.button {
+  background: var(--accent-main);
+  color: #fff;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 4px;
+  font-family: var(--font-sans);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.button:hover {
+  background: var(--accent-main-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(233, 34, 71, 0.3);
+}
+
+.button.outline {
+  background: transparent;
+  border: 1px solid var(--accent-main);
+  color: var(--accent-main);
+}
+
+.button.outline:hover {
+  background: rgba(233, 34, 71, 0.1);
+}
+
+.glass-panel {
+  background: var(--bg-panel);
+  border: var(--glass-border);
+  border-radius: 12px;
+  box-shadow: var(--glass-shadow);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.glass-panel:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px 0 rgba(0, 0, 0, 0.1);
+  border-color: rgba(233, 34, 71, 0.2);
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--bg-panel-hover);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-main);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
