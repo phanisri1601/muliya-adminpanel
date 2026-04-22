@@ -13,6 +13,12 @@ import Orders from './pages/Orders';
 import Collections from './pages/Collections';
 import Careers from './pages/Careers';
 import GoldPlans from './pages/GoldPlans';
+import GoldRate from './pages/GoldRate';
+import MakingCharges from './pages/MakingCharges';
+import Invoices from './pages/Invoices';
+import ReturnsExchange from './pages/ReturnsExchange';
+import UserRoles from './pages/UserRoles';
+import Reports from './pages/Reports';
 import Login from './pages/Login';
 import './App.css';
 
@@ -55,6 +61,18 @@ export default function App() {
         return <Careers />;
       case 'goldplans':
         return <GoldPlans />;
+      case 'gold-rate':
+        return <GoldRate />;
+      case 'making-charges':
+        return <MakingCharges />;
+      case 'invoices':
+        return <Invoices />;
+      case 'returns-exchange':
+        return <ReturnsExchange />;
+      case 'user-roles':
+        return <UserRoles />;
+      case 'reports':
+        return <Reports />;
       default:
         return (
           <div className="glass-panel animate-fade-in placeholder-page" style={{ animationDelay: '0.4s' }}>
