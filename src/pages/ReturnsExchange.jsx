@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Plus, Eye, Filter, RefreshCw, Package, User, Calendar, CheckCircle, XCircle, Clock, ArrowRightLeft } from 'lucide-react';
+import { Search, Plus, Eye, Filter, RefreshCw, Package, User, Calendar, CheckCircle, XCircle, Clock, ArrowRightLeft, X } from 'lucide-react';
 import './ReturnsExchange.css';
 
 const initialReturns = [
@@ -240,7 +240,7 @@ export default function ReturnsExchange() {
             <div className="modal-header">
               <h3>New Return/Exchange Request</h3>
               <button className="icon-button" onClick={handleCloseModal}>
-                <XCircle size={20} />
+                <X size={20} />
               </button>
             </div>
 
@@ -318,7 +318,7 @@ export default function ReturnsExchange() {
             <div className="modal-header">
               <h3>Request Details - {viewingReturn.id}</h3>
               <button className="icon-button" onClick={() => setViewingReturn(null)}>
-                <XCircle size={20} />
+                <X size={20} />
               </button>
             </div>
 

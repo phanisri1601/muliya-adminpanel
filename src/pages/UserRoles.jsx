@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Plus, Edit, Trash2, Shield, UserCheck, Settings, Eye, Lock, Unlock } from 'lucide-react';
+import { Search, Plus, Edit, Trash2, Shield, UserCheck, Settings, Eye, Lock, Unlock, X } from 'lucide-react';
 import './UserRoles.css';
 
 const initialRoles = [
@@ -224,7 +224,7 @@ export default function UserRoles() {
             <div className="modal-header">
               <h3>{editingRole ? 'Edit Role' : 'Create New Role'}</h3>
               <button className="icon-button" onClick={handleCloseModal}>
-                <Trash2 size={20} />
+                <X size={20} />
               </button>
             </div>
 
@@ -279,7 +279,7 @@ export default function UserRoles() {
             <div className="modal-header">
               <h3>Role Details - {viewingRole.name}</h3>
               <button className="icon-button" onClick={() => setViewingRole(null)}>
-                <Trash2 size={20} />
+                <X size={20} />
               </button>
             </div>
 

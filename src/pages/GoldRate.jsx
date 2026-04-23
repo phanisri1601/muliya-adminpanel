@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Plus, Edit, Trash2, TrendingUp, TrendingDown, Calendar } from 'lucide-react';
+import { Search, Plus, Edit, Trash2, TrendingUp, TrendingDown, Calendar, X } from 'lucide-react';
 import './GoldRate.css';
 
 const initialGoldRates = [
@@ -216,7 +216,7 @@ export default function GoldRate() {
             <div className="modal-header">
               <h3>{editingRate ? 'Edit Rate' : 'Add New Rate'}</h3>
               <button className="icon-button" onClick={handleCloseModal}>
-                <Trash2 size={20} />
+                <X size={20} />
               </button>
             </div>
 

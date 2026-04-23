@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Plus, Edit, Trash2, Hammer, Percent, IndianRupee } from 'lucide-react';
+import { Search, Plus, Edit, Trash2, Hammer, Percent, IndianRupee, X } from 'lucide-react';
 import './MakingCharges.css';
 
 const initialCharges = [
-  { id: 1, category: 'Ring', baseCharge: 500, chargeType: 'fixed', percentage: 0, minCharge: 300, maxCharge: 2000 },
-  { id: 2, category: 'Necklace', baseCharge: 800, chargeType: 'percentage', percentage: 8, minCharge: 500, maxCharge: 5000 },
-  { id: 3, category: 'Earrings', baseCharge: 300, chargeType: 'fixed', percentage: 0, minCharge: 200, maxCharge: 1500 },
-  { id: 4, category: 'Bracelet', baseCharge: 600, chargeType: 'percentage', percentage: 6, minCharge: 400, maxCharge: 3000 },
-  { id: 5, category: 'Pendant', baseCharge: 250, chargeType: 'fixed', percentage: 0, minCharge: 150, maxCharge: 1000 },
-  { id: 6, category: 'Bangles', baseCharge: 700, chargeType: 'percentage', percentage: 7, minCharge: 450, maxCharge: 4000 },
-  { id: 7, category: 'Chain', baseCharge: 400, chargeType: 'percentage', percentage: 5, minCharge: 300, maxCharge: 2500 },
-  { id: 8, category: 'Anklet', baseCharge: 550, chargeType: 'fixed', percentage: 0, minCharge: 350, maxCharge: 2000 },
+  { id: 1, category: 'Ring', baseCharge: 500, chargeType: 'fixed', percentage: 0, stoneCharges: 200, gstPercent: 3, minCharge: 300, maxCharge: 2000, finalPrice: 725 },
+  { id: 2, category: 'Necklace', baseCharge: 800, chargeType: 'percentage', percentage: 8, stoneCharges: 500, gstPercent: 3, minCharge: 500, maxCharge: 5000, finalPrice: 1342 },
+  { id: 3, category: 'Earrings', baseCharge: 300, chargeType: 'fixed', percentage: 0, stoneCharges: 150, gstPercent: 3, minCharge: 200, maxCharge: 1500, finalPrice: 465 },
+  { id: 4, category: 'Bracelet', baseCharge: 600, chargeType: 'percentage', percentage: 6, stoneCharges: 400, gstPercent: 3, minCharge: 400, maxCharge: 3000, finalPrice: 1062 },
+  { id: 5, category: 'Pendant', baseCharge: 250, chargeType: 'fixed', percentage: 0, stoneCharges: 100, gstPercent: 3, minCharge: 150, maxCharge: 1000, finalPrice: 362 },
+  { id: 6, category: 'Bangles', baseCharge: 700, chargeType: 'percentage', percentage: 7, stoneCharges: 450, gstPercent: 3, minCharge: 450, maxCharge: 4000, finalPrice: 1200 },
+  { id: 7, category: 'Chain', baseCharge: 400, chargeType: 'percentage', percentage: 5, stoneCharges: 300, gstPercent: 3, minCharge: 300, maxCharge: 2500, finalPrice: 728 },
+  { id: 8, category: 'Anklet', baseCharge: 550, chargeType: 'fixed', percentage: 0, stoneCharges: 250, gstPercent: 3, minCharge: 350, maxCharge: 2000, finalPrice: 825 },
 ];
 
 export default function MakingCharges() {
@@ -25,13 +25,32 @@ export default function MakingCharges() {
     baseCharge: 0,
     chargeType: 'fixed',
     percentage: 0,
+    stoneCharges: 0,
+    gstPercent: 3,
     minCharge: 0,
-    maxCharge: 0
+    maxCharge: 0,
+    finalPrice: 0
   });
 
   useEffect(() => {
     localStorage.setItem('makingCharges', JSON.stringify(charges));
   }, [charges]);
+
+  useEffect(() => {
+    const calculateFinalPrice = () => {
+      let makingCharge = formData.chargeType === 'percentage'
+        ? (formData.baseCharge * formData.percentage) / 100
+        : formData.baseCharge;
+
+      const subtotal = makingCharge + formData.stoneCharges;
+      const gstAmount = (subtotal * formData.gstPercent) / 100;
+      const finalPrice = subtotal + gstAmount;
+
+      setFormData(prev => ({ ...prev, finalPrice: Math.round(finalPrice) }));
+    };
+
+    calculateFinalPrice();
+  }, [formData.baseCharge, formData.chargeType, formData.percentage, formData.stoneCharges, formData.gstPercent]);
 
   const handleOpenModal = (charge = null) => {
     if (charge) {
@@ -41,8 +60,11 @@ export default function MakingCharges() {
         baseCharge: charge.baseCharge,
         chargeType: charge.chargeType,
         percentage: charge.percentage,
+        stoneCharges: charge.stoneCharges,
+        gstPercent: charge.gstPercent,
         minCharge: charge.minCharge,
-        maxCharge: charge.maxCharge
+        maxCharge: charge.maxCharge,
+        finalPrice: charge.finalPrice
       });
     } else {
       setEditingCharge(null);
@@ -51,8 +73,11 @@ export default function MakingCharges() {
         baseCharge: 0,
         chargeType: 'fixed',
         percentage: 0,
+        stoneCharges: 0,
+        gstPercent: 3,
         minCharge: 0,
-        maxCharge: 0
+        maxCharge: 0,
+        finalPrice: 0
       });
     }
     setIsModalOpen(true);
@@ -144,6 +169,9 @@ export default function MakingCharges() {
               <th>Category</th>
               <th>Charge Type</th>
               <th>Charge</th>
+              <th>Stone Charges</th>
+              <th>GST %</th>
+              <th>Final Price</th>
               <th>Min Charge</th>
               <th>Max Charge</th>
               <th>Actions</th>
@@ -167,6 +195,9 @@ export default function MakingCharges() {
                 <td className="charge-value">
                   {getChargeDisplay(charge)}
                 </td>
+                <td>₹ {charge.stoneCharges?.toLocaleString('en-IN') || 0}</td>
+                <td>{charge.gstPercent}%</td>
+                <td className="final-price-cell">₹ {charge.finalPrice?.toLocaleString('en-IN') || 0}</td>
                 <td>₹ {charge.minCharge.toLocaleString('en-IN')}</td>
                 <td>₹ {charge.maxCharge.toLocaleString('en-IN')}</td>
                 <td>
@@ -191,7 +222,7 @@ export default function MakingCharges() {
             <div className="modal-header">
               <h3>{editingCharge ? 'Edit Charge' : 'Add New Charge'}</h3>
               <button className="icon-button" onClick={handleCloseModal}>
-                <Trash2 size={20} />
+                <X size={20} />
               </button>
             </div>
 
@@ -249,6 +280,23 @@ export default function MakingCharges() {
                   <input type="number" name="percentage" value={formData.percentage} onChange={(e) => setFormData({ ...formData, percentage: parseFloat(e.target.value) || 0 })} placeholder="0" step="0.1" required />
                 </div>
               )}
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Stone Charges (₹) *</label>
+                  <input type="number" name="stoneCharges" value={formData.stoneCharges} onChange={(e) => setFormData({ ...formData, stoneCharges: parseFloat(e.target.value) || 0 })} placeholder="0" required />
+                </div>
+
+                <div className="form-group">
+                  <label>GST % *</label>
+                  <input type="number" name="gstPercent" value={formData.gstPercent} onChange={(e) => setFormData({ ...formData, gstPercent: parseFloat(e.target.value) || 0 })} placeholder="3" step="0.1" required />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>Final Price (Auto Calculate) ✅</label>
+                <input type="number" name="finalPrice" value={formData.finalPrice} readOnly className="readonly-input" />
+              </div>
 
               <div className="form-row">
                 <div className="form-group">

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Plus, Download, Eye, Filter, Calendar, User, Package, CheckCircle, Clock, XCircle, IndianRupee } from 'lucide-react';
+import { Search, Plus, Download, Eye, Filter, Calendar, User, Package, CheckCircle, Clock, XCircle, IndianRupee, X } from 'lucide-react';
 import './Invoices.css';
 
 const initialInvoices = [
@@ -211,7 +211,7 @@ export default function Invoices() {
             <div className="modal-header">
               <h3>Create New Invoice</h3>
               <button className="icon-button" onClick={handleCloseModal}>
-                <XCircle size={20} />
+                <X size={20} />
               </button>
             </div>
 
@@ -271,7 +271,7 @@ export default function Invoices() {
             <div className="modal-header">
               <h3>Invoice Details - {viewingInvoice.id}</h3>
               <button className="icon-button" onClick={() => setViewingInvoice(null)}>
-                <XCircle size={20} />
+                <X size={20} />
               </button>
             </div>
 
