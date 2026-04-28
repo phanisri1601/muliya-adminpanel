@@ -200,25 +200,3 @@
 .sidebar-footer .nav-item {
   margin-bottom: 0;
 }
-
-@media (max-width: 900px) {
-  .sidebar {
-    left: 0;
-    top: 0;
-    height: 100vh;
-    width: min(320px, 86vw);
-    border-radius: 0 12px 12px 0;
-    transform: translateX(-110%);
-    opacity: 1;
-    animation: none;
-    transition: transform 0.22s ease;
-  }
-
-  .sidebar.open {
-    transform: translateX(0);
-  }
-
-  .sidebar-header {
-    padding-top: 0.75rem;
-  }
-}

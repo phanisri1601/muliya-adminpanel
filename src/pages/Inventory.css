@@ -8,14 +8,11 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 1rem;
 }
 
 .inventory-actions {
   display: flex;
   gap: 1rem;
-  flex-wrap: wrap;
 }
 
 .table-container {
@@ -122,21 +119,4 @@
 .icon-button.small.danger:hover {
   color: var(--danger);
   background: rgba(207, 102, 121, 0.1);
-}
-
-@media (max-width: 600px) {
-  .inventory-actions {
-    width: 100%;
-    justify-content: flex-start;
-  }
-
-  .inventory-table th,
-  .inventory-table td {
-    padding-left: 1rem;
-    padding-right: 1rem;
-  }
-
-  .item-details {
-    gap: 0.75rem;
-  }
 }

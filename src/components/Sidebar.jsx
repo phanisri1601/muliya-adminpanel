@@ -30,7 +30,7 @@ const navItems = [
   ]},
 ];
 
-export default function Sidebar({ activeTab, setActiveTab, onLogout, isOpen, onClose }) {
+export default function Sidebar({ activeTab, setActiveTab, onLogout }) {
   const [expandedItems, setExpandedItems] = useState({});
 
   const toggleExpand = (itemId) => {
@@ -41,11 +41,7 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, isOpen, onC
   };
 
   return (
-    <aside
-      className={`sidebar glass-panel ${isOpen ? 'open' : ''}`}
-      aria-hidden={!isOpen}
-     
-    >
+    <aside className="sidebar glass-panel">
       <div className="sidebar-header animate-fade-in" style={{ animationDelay: '0.1s' }}>
         <img src="/Logo.svg" alt="Brand logo" className="brand-logo" />
       </div>
@@ -56,13 +52,12 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, isOpen, onC
             <button
               className={`nav-item ${activeTab === item.id ? 'active' : ''} ${item.subItems ? 'has-subitems' : ''}`}
               onClick={() => {
-  if (item.subItems) {
-    toggleExpand(item.id); // ONLY expand
-  } else {
-    setActiveTab(item.id);
-    onClose?.(); // close only for real navigation
-  }
-}}
+                if (item.subItems) {
+                  toggleExpand(item.id);
+                } else {
+                  setActiveTab(item.id);
+                }
+              }}
             >
               <div className="nav-item-left">
                 <item.icon size={20} />
@@ -81,10 +76,7 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, isOpen, onC
                   <button
                     key={subItem.id}
                     className={`sub-item ${activeTab === subItem.id ? 'active' : ''}`}
-                    onClick={() => {
-                      setActiveTab(subItem.id);
-                      onClose?.();
-                    }}
+                    onClick={() => setActiveTab(subItem.id)}
                   >
                     <span>{subItem.label}</span>
                   </button>
@@ -96,13 +88,7 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, isOpen, onC
       </nav>
 
       <div className="sidebar-footer animate-fade-in" style={{ animationDelay: '0.8s' }}>
-        <button
-          className="nav-item"
-          onClick={() => {
-            onLogout?.();
-            onClose?.();
-          }}
-        >
+        <button className="nav-item" onClick={onLogout}>
           <LogOut size={20} />
           <span>Logout</span>
         </button>

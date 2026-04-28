@@ -1,21 +1,13 @@
 import React from 'react';
-import { Menu, Search, Bell, User } from 'lucide-react';
+import { Search, Bell, User } from 'lucide-react';
 import './Header.css';
 
-export default function Header({ activeTab, onMenuClick }) {
+export default function Header({ activeTab }) {
   const pageTitle = activeTab.charAt(0).toUpperCase() + activeTab.slice(1);
 
   return (
     <header className="header glass-panel animate-fade-in" style={{ animationDelay: '0.3s' }}>
       <div className="header-left">
-        <button
-          type="button"
-          className="mobile-menu-button"
-          onClick={onMenuClick}
-          aria-label="Open menu"
-        >
-          <Menu size={22} />
-        </button>
         <h1 className="page-title">{pageTitle}</h1>
       </div>
       
