@@ -25,6 +25,7 @@ import './App.css';
 export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const handleLogin = () => {
     setIsAuthenticated(true);
@@ -89,10 +90,25 @@ export default function App() {
 
   return (
     <div className="app-container">
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} onLogout={handleLogout} />
+      <div
+        className={`sidebar-overlay ${isSidebarOpen ? 'open' : ''}`}
+        onClick={() => setIsSidebarOpen(false)}
+        aria-hidden={!isSidebarOpen}
+      />
+
+<Sidebar
+  activeTab={activeTab}
+  setActiveTab={(tab) => {
+    setActiveTab(tab);
+    setIsSidebarOpen(false); // ✅ CLOSE HERE
+  }}
+  onLogout={handleLogout}
+  isOpen={isSidebarOpen}
+  onClose={() => setIsSidebarOpen(false)} // ✅ MUST EXIST
+/>
       
       <main className="main-content">
-        <Header activeTab={activeTab} />
+        <Header activeTab={activeTab} onMenuClick={() => setIsSidebarOpen((v) => !v)} />
         <div className="page-content">
           {renderContent()}
         </div>

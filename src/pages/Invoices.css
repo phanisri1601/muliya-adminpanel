@@ -9,6 +9,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
 }
 
 .invoices-header h2 {
@@ -92,6 +94,7 @@
 .invoices-table-container {
   border-radius: 12px;
   overflow: hidden;
+  max-width: 100%;
 }
 
 .table-header {
@@ -335,6 +338,10 @@
 }
 
 @media (max-width: 768px) {
+  .invoices-container {
+    padding: 1rem;
+  }
+
   .stats-cards {
     grid-template-columns: 1fr;
   }
@@ -352,5 +359,15 @@
 
   .form-row {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .invoices-table-container {
+    overflow-x: auto;
+  }
+
+  .invoices-table {
+    min-width: 720px;
   }
 }
