@@ -53,6 +53,114 @@ const initialFormData = {
   appliesToWastage: false,
 };
 
+const initialCoupons = [
+  {
+    id: '1',
+    code: 'WELCOME20',
+    description: 'Welcome offer for new customers',
+    couponType: 'percentage',
+    discount: '20',
+    maxLimit: '5000',
+    minPurchase: '10000',
+    isActive: true,
+    isShowDisplay: true,
+    applicableTo: 'all',
+    startDate: '2024-01-01',
+    endDate: '2024-12-31',
+    usageLimit: '1000',
+    usageCount: 156,
+    appliesToGoldRate: false,
+    appliesToMakingCharge: false,
+    appliesToWastage: false,
+    createdAt: Date.now() - 86400000 * 30,
+    updatedAt: Date.now() - 86400000 * 30,
+  },
+  {
+    id: '2',
+    code: 'GOLD500',
+    description: 'Special discount on gold jewellery',
+    couponType: 'fixed',
+    discount: '500',
+    maxLimit: '10000',
+    minPurchase: '25000',
+    isActive: true,
+    isShowDisplay: true,
+    applicableTo: 'gold_jewellery',
+    startDate: '2024-02-01',
+    endDate: '2024-06-30',
+    usageLimit: '500',
+    usageCount: 89,
+    appliesToGoldRate: true,
+    appliesToMakingCharge: true,
+    appliesToWastage: false,
+    createdAt: Date.now() - 86400000 * 25,
+    updatedAt: Date.now() - 86400000 * 25,
+  },
+  {
+    id: '3',
+    code: 'DIAMOND15',
+    description: 'Exclusive diamond collection offer',
+    couponType: 'percentage',
+    discount: '15',
+    maxLimit: '8000',
+    minPurchase: '50000',
+    isActive: true,
+    isShowDisplay: true,
+    applicableTo: 'diamond_jewellery',
+    startDate: '2024-03-01',
+    endDate: '2024-09-30',
+    usageLimit: '200',
+    usageCount: 45,
+    appliesToGoldRate: false,
+    appliesToMakingCharge: false,
+    appliesToWastage: false,
+    createdAt: Date.now() - 86400000 * 20,
+    updatedAt: Date.now() - 86400000 * 20,
+  },
+  {
+    id: '4',
+    code: 'FESTIVE10',
+    description: 'Festival special discount',
+    couponType: 'percentage',
+    discount: '10',
+    maxLimit: '3000',
+    minPurchase: '15000',
+    isActive: true,
+    isShowDisplay: true,
+    applicableTo: 'all',
+    startDate: '2024-04-01',
+    endDate: '2024-05-31',
+    usageLimit: '2000',
+    usageCount: 312,
+    appliesToGoldRate: false,
+    appliesToMakingCharge: false,
+    appliesToWastage: false,
+    createdAt: Date.now() - 86400000 * 15,
+    updatedAt: Date.now() - 86400000 * 15,
+  },
+  {
+    id: '5',
+    code: 'MAKING5',
+    description: 'Discount on making charges',
+    couponType: 'making_charge',
+    discount: '5',
+    maxLimit: '2000',
+    minPurchase: '10000',
+    isActive: false,
+    isShowDisplay: false,
+    applicableTo: 'gold_jewellery',
+    startDate: '2024-01-15',
+    endDate: '2024-04-15',
+    usageLimit: '300',
+    usageCount: 78,
+    appliesToGoldRate: false,
+    appliesToMakingCharge: true,
+    appliesToWastage: true,
+    createdAt: Date.now() - 86400000 * 10,
+    updatedAt: Date.now() - 86400000 * 10,
+  },
+];
+
 export default function Coupons() {
   const [coupons, setCoupons] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -61,8 +169,13 @@ export default function Coupons() {
   const [formData, setFormData] = useState(initialFormData);
 
   useEffect(() => {
-    const stored = safeParse(localStorage.getItem(STORAGE_KEY), []);
-    setCoupons(stored);
+    const stored = safeParse(localStorage.getItem(STORAGE_KEY), null);
+    if (stored && stored.length > 0) {
+      setCoupons(stored);
+    } else {
+      setCoupons(initialCoupons);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(initialCoupons));
+    }
   }, []);
 
   useEffect(() => {

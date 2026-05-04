@@ -1,8 +1,8 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Copy, Image as ImageIcon, Link2, Star, Trash2, Upload } from 'lucide-react';
 import './Banner.css';
 
-const STORAGE_KEY = 'website_banner_images_v1';
+const STORAGE_KEY = 'website_banners_v1';
 
 function safeParse(json, fallback) {
   try {
@@ -14,216 +14,199 @@ function safeParse(json, fallback) {
 }
 
 export default function Banner() {
-  const fileInputRef = useRef(null);
-  const [images, setImages] = useState([]);
-  const [activeId, setActiveId] = useState(null);
+  const fileInputRef = React.useRef(null);
+  const [banners, setBanners] = useState([]);
+  const [activeBannerId, setActiveBannerId] = useState(null);
   const [urlInput, setUrlInput] = useState('');
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    const stored = safeParse(localStorage.getItem(STORAGE_KEY), null);
-    if (stored && Array.isArray(stored.images)) {
-      setImages(stored.images);
-      setActiveId(stored.activeId ?? stored.images?.[0]?.id ?? null);
+    const stored = safeParse(localStorage.getItem(STORAGE_KEY), { banners: [], activeBannerId: null });
+    if (stored && stored.banners && stored.banners.length > 0) {
+      setBanners(stored.banners);
+      setActiveBannerId(stored.activeBannerId || stored.banners[0].id);
     }
   }, []);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ images, activeId }));
-  }, [images, activeId]);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ banners, activeBannerId }));
+  }, [banners, activeBannerId]);
 
-  const activeImage = useMemo(() => images.find((img) => img.id === activeId) ?? null, [images, activeId]);
+  const activeBanner = banners.find(banner => banner.id === activeBannerId);
 
-  const onPickFiles = async (files) => {
-    const list = Array.from(files ?? []);
-    if (list.length === 0) return;
+  const handleFileUpload = (event) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
 
-    const readAsDataUrl = (file) =>
-      new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(String(reader.result));
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
+    const newBanners = Array.from(files).map(file => ({
+      id: `banner-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      name: file.name,
+      src: URL.createObjectURL(file),
+      createdAt: Date.now(),
+      type: 'upload'
+    }));
 
-    const newImages = await Promise.all(
-      list.map(async (file) => ({
-        id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
-        name: file.name,
-        src: await readAsDataUrl(file),
-        createdAt: Date.now(),
-        type: 'upload',
-      }))
-    );
-
-    setImages((prev) => {
-      const merged = [...newImages, ...prev];
-      return merged;
-    });
-
-    setActiveId((prev) => prev ?? newImages[0]?.id ?? null);
+    setBanners(prev => [...newBanners, ...prev]);
+    if (newBanners.length > 0 && !activeBannerId) {
+      setActiveBannerId(newBanners[0].id);
+    }
   };
 
-  const onAddUrl = () => {
-    const value = urlInput.trim();
-    if (!value) return;
+  const handleUrlAdd = () => {
+    const url = urlInput.trim();
+    if (!url) return;
 
-    const newItem = {
-      id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
-      name: value,
-      src: value,
+    const newBanner = {
+      id: `banner-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      name: url.split('/').pop() || 'URL Banner',
+      src: url,
       createdAt: Date.now(),
-      type: 'url',
+      type: 'url'
     };
 
-    setImages((prev) => [newItem, ...prev]);
-    setActiveId((prev) => prev ?? newItem.id);
+    setBanners(prev => [newBanner, ...prev]);
+    if (!activeBannerId) {
+      setActiveBannerId(newBanner.id);
+    }
     setUrlInput('');
   };
 
-  const onDelete = (id) => {
-    setImages((prev) => {
-      const next = prev.filter((img) => img.id !== id);
-      setActiveId((current) => {
-        if (current !== id) return current;
-        return next[0]?.id ?? null;
-      });
-      return next;
-    });
+  const handleDeleteBanner = (bannerId) => {
+    setBanners(prev => prev.filter(banner => banner.id !== bannerId));
+    if (activeBannerId === bannerId) {
+      setActiveBannerId(banners.length > 1 ? banners[0].id : null);
+    }
   };
 
-  const onCopyActive = async () => {
-    if (!activeImage?.src) return;
+  const handleSetActiveBanner = (bannerId) => {
+    setActiveBannerId(bannerId);
+  };
+
+  const handleCopyUrl = async () => {
+    if (!activeBanner?.src) return;
+    
     try {
-      if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(activeImage.src);
-      } else {
-        const textarea = document.createElement('textarea');
-        textarea.value = activeImage.src;
-        textarea.style.position = 'fixed';
-        textarea.style.opacity = '0';
-        document.body.appendChild(textarea);
-        textarea.focus();
-        textarea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textarea);
-      }
+      await navigator.clipboard.writeText(activeBanner.src);
       setCopied(true);
-      window.setTimeout(() => setCopied(false), 1200);
+      setTimeout(() => setCopied(false), 2000);
     } catch {
       setCopied(false);
     }
   };
 
   return (
-    <div className="banner-page">
-      <div className="banner-header glass-panel animate-fade-in" style={{ animationDelay: '0.15s', opacity: 0, animationFillMode: 'forwards' }}>
-        <div className="banner-header-left">
-          <div className="banner-title-row">
-            <ImageIcon size={20} />
-            <h3 className="banner-title">Website Banner</h3>
-          </div>
-          <p className="banner-subtitle">Upload images or add image URLs, then set the active banner.</p>
+    <div className="banner-container">
+      <div className="banner-header">
+        <div className="banner-title">
+          <ImageIcon size={24} />
+          <h2>Website Banners</h2>
         </div>
-
-        <div className="banner-header-actions">
+        <div className="banner-actions">
           <input
             ref={fileInputRef}
             type="file"
             accept="image/*"
             multiple
+            onChange={handleFileUpload}
             style={{ display: 'none' }}
-            onChange={(e) => onPickFiles(e.target.files)}
           />
-          <button className="button" onClick={() => fileInputRef.current?.click()}>
+          <button className="btn-primary" onClick={() => fileInputRef.current?.click()}>
             <Upload size={18} />
-            Upload Images
+            Upload Banners
           </button>
         </div>
       </div>
 
-      <div className="banner-grid">
-        <div className="glass-panel banner-preview-panel animate-fade-in" style={{ animationDelay: '0.25s', opacity: 0, animationFillMode: 'forwards' }}>
-          <div className="banner-preview-head">
-            <h4>Active Banner Preview</h4>
-            <button className="button outline" onClick={onCopyActive} disabled={!activeImage}>
-              <Copy size={18} />
-              {copied ? 'Copied' : 'Copy URL'}
-            </button>
-          </div>
-
+      <div className="banner-content">
+        <div className="banner-preview-section">
+          <h3>Active Banner Preview</h3>
           <div className="banner-preview">
-            {activeImage ? (
-              <img src={activeImage.src} alt={activeImage.name} />
+            {activeBanner ? (
+              <img src={activeBanner.src} alt={activeBanner.name} />
             ) : (
-              <div className="banner-empty">
-                <ImageIcon size={34} />
-                <div>No banner selected</div>
+              <div className="no-banner">
+                <ImageIcon size={48} />
+                <p>No active banner selected</p>
               </div>
             )}
           </div>
-
-          <div className="banner-active-meta">
-            <div className="meta-row">
-              <div className="meta-label">Active</div>
-              <div className="meta-value">{activeImage?.name ?? '-'}</div>
+          {activeBanner && (
+            <div className="banner-info">
+              <div className="info-item">
+                <span className="info-label">Name:</span>
+                <span className="info-value">{activeBanner.name}</span>
+              </div>
+              <div className="info-item">
+                <span className="info-label">Type:</span>
+                <span className="info-value">{activeBanner.type}</span>
+              </div>
+              <button className="btn-secondary" onClick={handleCopyUrl}>
+                <Copy size={16} />
+                {copied ? 'Copied!' : 'Copy URL'}
+              </button>
             </div>
-            <div className="meta-row">
-              <div className="meta-label">Source</div>
-              <div className="meta-value">{activeImage?.type ?? '-'}</div>
-            </div>
-          </div>
+          )}
         </div>
 
-        <div className="glass-panel banner-library-panel animate-fade-in" style={{ animationDelay: '0.35s', opacity: 0, animationFillMode: 'forwards' }}>
-          <div className="banner-library-head">
-            <h4>Banner Library</h4>
-            <div className="banner-url-add">
-              <div className="banner-url-input">
+        <div className="banner-library-section">
+          <div className="section-header">
+            <h3>Banner Library ({banners.length})</h3>
+            <div className="url-input-group">
+              <div className="input-wrapper">
                 <Link2 size={18} />
                 <input
                   type="text"
                   value={urlInput}
                   onChange={(e) => setUrlInput(e.target.value)}
-                  placeholder="Paste an image URL (https://...)"
+                  placeholder="Enter image URL..."
                 />
               </div>
-              <button className="button outline" onClick={onAddUrl}>
+              <button className="btn-secondary" onClick={handleUrlAdd}>
                 Add URL
               </button>
             </div>
           </div>
 
-          {images.length === 0 ? (
-            <div className="banner-library-empty">
-              <ImageIcon size={32} />
-              <div>Add some images to start</div>
-            </div>
-          ) : (
-            <div className="banner-thumbs">
-              {images.map((img) => (
-                <div key={img.id} className={`banner-thumb ${img.id === activeId ? 'active' : ''}`}>
-                  <button className="banner-thumb-image" onClick={() => setActiveId(img.id)} title="Set as active">
-                    <img src={img.src} alt={img.name} />
-                  </button>
-
-                  <div className="banner-thumb-info">
-                    <div className="banner-thumb-name" title={img.name}>
-                      {img.name}
-                    </div>
-                    <div className="banner-thumb-actions">
-                      <button className="icon-button small" onClick={() => setActiveId(img.id)} title="Set active">
-                        <Star size={16} />
+          <div className="banner-grid">
+            {banners.length === 0 ? (
+              <div className="empty-state">
+                <ImageIcon size={64} />
+                <h3>No banners uploaded</h3>
+                <p>Upload banner images or add URLs to get started</p>
+              </div>
+            ) : (
+              banners.map(banner => (
+                <div 
+                  key={banner.id} 
+                  className={`banner-card ${banner.id === activeBannerId ? 'active' : ''}`}
+                >
+                  <div className="banner-image-wrapper">
+                    <img src={banner.src} alt={banner.name} />
+                    <div className="banner-overlay">
+                      <button 
+                        className="btn-icon"
+                        onClick={() => handleSetActiveBanner(banner.id)}
+                        title="Set as active banner"
+                      >
+                        <Star size={20} />
                       </button>
-                      <button className="icon-button small danger" onClick={() => onDelete(img.id)} title="Delete">
-                        <Trash2 size={16} />
+                      <button 
+                        className="btn-icon btn-danger"
+                        onClick={() => handleDeleteBanner(banner.id)}
+                        title="Delete banner"
+                      >
+                        <Trash2 size={20} />
                       </button>
                     </div>
                   </div>
+                  <div className="banner-details">
+                    <h4>{banner.name}</h4>
+                    <p>Added: {new Date(banner.createdAt).toLocaleDateString()}</p>
+                  </div>
                 </div>
-              ))}
-            </div>
-          )}
+              ))
+            )}
+          </div>
         </div>
       </div>
     </div>

@@ -2,6 +2,9 @@
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .collections-header {
@@ -28,6 +31,32 @@
 
 .collections-controls .search-bar {
   min-width: 250px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: var(--bg-panel);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+}
+
+.collections-controls .search-bar .search-icon {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.collections-controls .search-bar input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  width: 100%;
+  margin-left: 0.5rem;
+}
+
+.collections-controls .search-bar input::placeholder {
+  color: var(--text-muted);
 }
 
 .category-filter {
@@ -96,8 +125,15 @@
 /* Grid View */
 .collections-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
   gap: 1.5rem;
+}
+
+@media (max-width: 480px) {
+  .collections-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
 }
 
 /* List View */
@@ -618,15 +654,35 @@
   .collections-header {
     flex-direction: column;
     align-items: stretch;
+    gap: 1rem;
+  }
+
+  .collections-title {
+    font-size: 1.25rem;
   }
 
   .collections-controls {
     flex-direction: column;
     align-items: stretch;
+    gap: 0.75rem;
   }
 
   .collections-controls .search-bar {
     min-width: unset;
+    width: 100%;
+  }
+
+  .collections-controls .search-bar input {
+    font-size: 0.9rem;
+  }
+
+  .category-filter {
+    width: 100%;
+  }
+
+  .view-toggle {
+    width: 100%;
+    justify-content: center;
   }
 
   .collections-grid {
@@ -652,5 +708,160 @@
 
   .collection-modal {
     max-height: 95vh;
+    margin: 0.5rem;
+    max-width: calc(100% - 1rem);
+  }
+
+  .collection-modal-header {
+    padding: 1rem;
+  }
+
+  .collection-modal-header h3 {
+    font-size: 1rem;
+  }
+
+  .collection-form-content {
+    padding: 1rem;
+  }
+
+  .collection-modal-footer {
+    padding: 0.75rem 1rem;
+  }
+
+  .collection-image {
+    height: 180px;
+  }
+
+  .collection-content {
+    padding: 1rem;
+  }
+
+  .collection-title {
+    font-size: 1rem;
+  }
+
+  .collection-description {
+    font-size: 0.85rem;
+  }
+
+  .featured-badge {
+    font-size: 0.7rem;
+    padding: 0.3rem 0.7rem;
+  }
+
+  .toggle-btn,
+  .edit-btn,
+  .delete-btn {
+    width: 28px;
+    height: 28px;
+  }
+}
+
+@media (max-width: 480px) {
+  .collections-container {
+    gap: 1rem;
+  }
+
+  .collections-title {
+    font-size: 1.1rem;
+  }
+
+  .view-toggle button {
+    width: 32px;
+    height: 32px;
+  }
+
+  .category-filter {
+    font-size: 0.85rem;
+    padding: 0.5rem 0.75rem;
+  }
+
+  .collection-image {
+    height: 160px;
+  }
+
+  .collection-content {
+    padding: 0.875rem;
+  }
+
+  .collection-title {
+    font-size: 0.95rem;
+  }
+
+  .collection-description {
+    font-size: 0.8rem;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+  }
+
+  .collection-meta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .product-count,
+  .collection-date {
+    font-size: 0.8rem;
+  }
+
+  .collection-modal {
+    max-height: 100vh;
+    border-radius: 0;
+    margin: 0;
+    max-width: 100%;
+  }
+
+  .collection-modal-header h3 {
+    font-size: 0.95rem;
+  }
+
+  .collection-form-content {
+    padding: 0.875rem;
+    gap: 1rem;
+  }
+
+  .form-group label {
+    font-size: 0.8rem;
+  }
+
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    font-size: 0.9rem;
+    padding: 0.6rem 0.875rem;
+  }
+
+  .collection-image-upload {
+    padding: 1.5rem;
+  }
+
+  .collection-image-preview {
+    height: 150px;
+  }
+
+  .collection-modal-footer {
+    padding: 0.625rem 0.875rem;
+  }
+
+  .collection-modal-footer .button {
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+  }
+
+  .checkbox-label {
+    font-size: 0.85rem;
+  }
+
+  .check-icon {
+    width: 18px;
+    height: 18px;
+  }
+
+  .checkbox-label input:checked + .check-icon::after {
+    left: 4px;
+    top: 1px;
+    width: 4px;
+    height: 9px;
   }
 }

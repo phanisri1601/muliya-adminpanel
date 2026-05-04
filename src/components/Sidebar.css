@@ -200,3 +200,31 @@
 .sidebar-footer .nav-item {
   margin-bottom: 0;
 }
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .sidebar {
+    width: 0;
+    padding: 0;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.3s ease;
+  }
+
+  .sidebar.mobile-open {
+    width: 280px;
+    padding: 1.5rem 0 0 0;
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .sidebar.mobile-open {
+    width: 100%;
+    left: 0;
+    top: 0;
+    height: 100vh;
+    border-radius: 0;
+  }
+}

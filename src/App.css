@@ -34,3 +34,38 @@
   color: var(--accent-gold);
   margin-bottom: 1rem;
 }
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .main-content {
+    margin-left: 0;
+    padding: 1rem;
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .main-content {
+    padding: 0.75rem;
+  }
+
+  .placeholder-page {
+    padding: 2rem 1rem;
+  }
+}
+
+/* Mobile Sidebar Overlay */
+.mobile-sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 99;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.mobile-sidebar-overlay.active {
+  display: block;
+  opacity: 1;
+}

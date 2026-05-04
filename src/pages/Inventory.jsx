@@ -17,22 +17,42 @@ export default function Inventory() {
     return saved ? JSON.parse(saved) : initialInventory;
   });
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
 
   useEffect(() => {
     localStorage.setItem('inventoryItems', JSON.stringify(items));
   }, [items]);
 
   const handleSaveProduct = (productData) => {
-    const newProduct = {
-      ...productData,
-      id: `ITM-${String(items.length + 1).padStart(3, '0')}`,
-      status: productData.stock.availableStock > 0 ? (productData.stock.availableStock <= productData.stock.minStockAlert ? 'Low Stock' : 'In Stock') : 'Out of Stock'
-    };
-    setItems([...items, newProduct]);
+    if (editingItem) {
+      // Update existing item
+      setItems(items.map(item => 
+        item.id === editingItem.id 
+          ? { 
+              ...productData, 
+              id: editingItem.id,
+              status: productData.stock.availableStock > 0 ? (productData.stock.availableStock <= productData.stock.minStockAlert ? 'Low Stock' : 'In Stock') : 'Out of Stock'
+            }
+          : item
+      ));
+    } else {
+      // Create new item
+      const newProduct = {
+        ...productData,
+        id: `ITM-${String(items.length + 1).padStart(3, '0')}`,
+        status: productData.stock.availableStock > 0 ? (productData.stock.availableStock <= productData.stock.minStockAlert ? 'Low Stock' : 'In Stock') : 'Out of Stock'
+      };
+      setItems([...items, newProduct]);
+    }
   };
 
   const handleDeleteItem = (id) => {
     setItems(items.filter(item => item.id !== id));
+  };
+
+  const handleEditItem = (item) => {
+    setEditingItem(item);
+    setIsModalOpen(true);
   };
 
   const getStockStatus = (stock, minAlert) => {
@@ -96,7 +116,7 @@ export default function Inventory() {
                 <td>{item.stock?.availableStock || 0}</td>
                 <td>
                   <div className="action-buttons">
-                    <button className="icon-button small"><Edit size={16} /></button>
+                    <button className="icon-button small" onClick={() => handleEditItem(item)}><Edit size={16} /></button>
                     <button className="icon-button small danger" onClick={() => handleDeleteItem(item.id)}><Trash2 size={16} /></button>
                   </div>
                 </td>
@@ -105,7 +125,15 @@ export default function Inventory() {
           </tbody>
         </table>
       </div>
-      <ProductModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleSaveProduct} />
+      <ProductModal 
+        isOpen={isModalOpen} 
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditingItem(null);
+        }} 
+        onSave={handleSaveProduct}
+        editingItem={editingItem}
+      />
     </div>
   );
 }

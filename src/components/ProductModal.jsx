@@ -2,36 +2,69 @@ import React, { useState } from 'react';
 import { X, Plus, Trash2, Upload } from 'lucide-react';
 import './ProductModal.css';
 
-export default function ProductModal({ isOpen, onClose, onSave }) {
+export default function ProductModal({ isOpen, onClose, onSave, editingItem }) {
   if (!isOpen) return null;
 
-  const [formData, setFormData] = useState({
-    productName: '',
-    category: 'Ring',
-    subCategory: '',
-    brand: '',
-    sku: '',
-    material: 'Gold',
-    goldPurity: '22K',
-    goldWeight: 0,
-    netWeight: 0,
-    grossWeight: 0,
-    wastagePercent: 0,
-    makingCharges: 0,
-    hallmark: true,
-    bisHallmarkNumber: '',
-    goldRate: 0,
-    stoneCharges: 0,
-    gstPercent: 3,
-    finalPrice: 0,
-    gemstones: [{ stoneType: '', count: 0, carat: 0, quality: '', certification: '' }],
-    stock: { initialStock: 0, availableStock: 0, minStockAlert: 0 },
-    attributes: { size: '', gender: 'Unisex', occasion: '', color: 'Yellow Gold', finish: '' },
-    media: { images: [], video: '', view360: '' },
-    description: '',
-    features: '',
-    careInstructions: '',
-    shipping: { weight: 0, returnPolicy: '', warranty: '' }
+  const [formData, setFormData] = useState(() => {
+    if (editingItem) {
+      return {
+        productName: editingItem.productName || '',
+        category: editingItem.category || 'Ring',
+        subCategory: editingItem.subCategory || '',
+        brand: editingItem.brand || '',
+        sku: editingItem.sku || '',
+        material: editingItem.material || 'Gold',
+        goldPurity: editingItem.goldPurity || '22K',
+        goldWeight: editingItem.goldWeight || 0,
+        netWeight: editingItem.netWeight || 0,
+        grossWeight: editingItem.grossWeight || 0,
+        wastagePercent: editingItem.wastagePercent || 0,
+        makingCharges: editingItem.makingCharges || 0,
+        hallmark: editingItem.hallmark !== undefined ? editingItem.hallmark : true,
+        bisHallmarkNumber: editingItem.bisHallmarkNumber || '',
+        goldRate: editingItem.goldRate || 0,
+        stoneCharges: editingItem.stoneCharges || 0,
+        gstPercent: editingItem.gstPercent || 3,
+        finalPrice: editingItem.finalPrice || 0,
+        gemstones: editingItem.gemstones || [{ stoneType: '', count: 0, carat: 0, quality: '', certification: '' }],
+        stock: editingItem.stock || { initialStock: 0, availableStock: 0, minStockAlert: 0 },
+        attributes: editingItem.attributes || { size: '', gender: 'Unisex', occasion: '', color: 'Yellow Gold', finish: '' },
+        media: editingItem.media || { images: [], video: '', view360: '' },
+        description: editingItem.description || '',
+        features: editingItem.features || '',
+        careInstructions: editingItem.careInstructions || '',
+        shipping: editingItem.shipping || { weight: 0, returnPolicy: '', warranty: '' }
+      };
+    }
+    
+    return {
+      productName: '',
+      category: 'Ring',
+      subCategory: '',
+      brand: '',
+      sku: '',
+      material: 'Gold',
+      goldPurity: '22K',
+      goldWeight: 0,
+      netWeight: 0,
+      grossWeight: 0,
+      wastagePercent: 0,
+      makingCharges: 0,
+      hallmark: true,
+      bisHallmarkNumber: '',
+      goldRate: 0,
+      stoneCharges: 0,
+      gstPercent: 3,
+      finalPrice: 0,
+      gemstones: [{ stoneType: '', count: 0, carat: 0, quality: '', certification: '' }],
+      stock: { initialStock: 0, availableStock: 0, minStockAlert: 0 },
+      attributes: { size: '', gender: 'Unisex', occasion: '', color: 'Yellow Gold', finish: '' },
+      media: { images: [], video: '', view360: '' },
+      description: '',
+      features: '',
+      careInstructions: '',
+      shipping: { weight: 0, returnPolicy: '', warranty: '' }
+    };
   });
 
   const handleInputChange = (e) => {
@@ -81,7 +114,7 @@ export default function ProductModal({ isOpen, onClose, onSave }) {
     <div className="modal-overlay animate-fade-in" style={{ opacity: 0, animationFillMode: 'forwards' }}>
       <div className="modal-content glass-panel animate-fade-in" style={{ animationDelay: '0.1s', opacity: 0, animationFillMode: 'forwards' }}>
         <div className="modal-header">
-          <h3>Add New Product</h3>
+          <h3>{editingItem ? 'Edit Product' : 'Add New Product'}</h3>
           <button className="icon-button" onClick={onClose}><X size={20} /></button>
         </div>
 
@@ -427,7 +460,7 @@ export default function ProductModal({ isOpen, onClose, onSave }) {
 
           <div className="modal-footer">
             <button type="button" className="button outline" onClick={onClose}>Cancel</button>
-            <button type="submit" className="button">Save Product</button>
+            <button type="submit" className="button">{editingItem ? 'Update Product' : 'Save Product'}</button>
           </div>
         </form>
       </div>

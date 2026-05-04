@@ -30,7 +30,7 @@ const navItems = [
   ]},
 ];
 
-export default function Sidebar({ activeTab, setActiveTab, onLogout }) {
+export default function Sidebar({ activeTab, setActiveTab, onLogout, isMobileOpen, onMobileClose }) {
   const [expandedItems, setExpandedItems] = useState({});
 
   const toggleExpand = (itemId) => {
@@ -40,24 +40,36 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout }) {
     }));
   };
 
+  const handleItemClick = (item) => {
+    if (item.subItems) {
+      toggleExpand(item.id);
+    } else {
+      setActiveTab(item.id);
+      if (isMobileOpen) {
+        onMobileClose();
+      }
+    }
+  };
+
+  const handleSubItemClick = (subItem) => {
+    setActiveTab(subItem.id);
+    if (isMobileOpen) {
+      onMobileClose();
+    }
+  };
+
   return (
-    <aside className="sidebar glass-panel">
+    <aside className={`sidebar glass-panel ${isMobileOpen ? 'mobile-open' : ''}`}>
       <div className="sidebar-header animate-fade-in" style={{ animationDelay: '0.1s' }}>
         <img src="/Logo.svg" alt="Brand logo" className="brand-logo" />
       </div>
-      
+
       <nav className="sidebar-nav">
         {navItems.map((item, index) => (
           <div key={item.id} className="nav-item-wrapper animate-fade-in" style={{ animationDelay: `${0.2 + index * 0.05}s` }}>
             <button
               className={`nav-item ${activeTab === item.id ? 'active' : ''} ${item.subItems ? 'has-subitems' : ''}`}
-              onClick={() => {
-                if (item.subItems) {
-                  toggleExpand(item.id);
-                } else {
-                  setActiveTab(item.id);
-                }
-              }}
+              onClick={() => handleItemClick(item)}
             >
               <div className="nav-item-left">
                 <item.icon size={20} />
@@ -76,7 +88,7 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout }) {
                   <button
                     key={subItem.id}
                     className={`sub-item ${activeTab === subItem.id ? 'active' : ''}`}
-                    onClick={() => setActiveTab(subItem.id)}
+                    onClick={() => handleSubItemClick(subItem)}
                   >
                     <span>{subItem.label}</span>
                   </button>

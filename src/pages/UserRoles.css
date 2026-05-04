@@ -244,6 +244,7 @@
   flex-direction: column;
   flex: 1;
   overflow: hidden;
+  padding: 1.25rem; /* 👈 ADD THIS */
 }
 
 .role-form-content {
