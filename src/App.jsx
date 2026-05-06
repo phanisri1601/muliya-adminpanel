@@ -11,6 +11,7 @@ import Employees from './pages/Employees';
 import Coupons from './pages/Coupons';
 import Reviews from './pages/Reviews';
 import Orders from './pages/Orders';
+import Categories from './pages/Categories';
 import Collections from './pages/Collections';
 import Careers from './pages/Careers';
 import GoldPlans from './pages/GoldPlans';
@@ -63,6 +64,8 @@ export default function App() {
         return <Reviews />;
       case 'orders':
         return <Orders />;
+      case 'categories':
+        return <Categories />;
       case 'collections':
         return <Collections />;
       case 'careers':

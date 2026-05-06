@@ -1,7 +1,8 @@
 import React from 'react';
 
 export default function MetricCard({ title, value, change, icon: Icon, delay }) {
-  const isPositive = change >= 0;
+  const hasChange = typeof change === 'number' && Number.isFinite(change);
+  const isPositive = hasChange && change >= 0;
   
   return (
     <div className="glass-panel metric-card animate-fade-in" style={{ animationDelay: delay, opacity: 0, animationFillMode: 'forwards' }}>
@@ -13,9 +14,11 @@ export default function MetricCard({ title, value, change, icon: Icon, delay }) 
       </div>
       <div className="metric-content">
         <div className="metric-value">{value}</div>
-        <div className={`metric-change ${isPositive ? 'positive' : 'negative'}`}>
-          {isPositive ? '+' : ''}{change}% from last month
-        </div>
+        {hasChange && (
+          <div className={`metric-change ${isPositive ? 'positive' : 'negative'}`}>
+            {isPositive ? '+' : ''}{change}% from last month
+          </div>
+        )}
       </div>
     </div>
   );

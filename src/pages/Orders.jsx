@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Search, ShoppingBag, Calendar, User, CreditCard, CheckCircle, Clock, XCircle, Eye, Download, Filter, ArrowLeft, Package, MapPin, Building2, Phone, Mail, Printer, Image as ImageIcon, Hash, Tag } from 'lucide-react';
+import { api, endpoints } from '../api';
 import './Orders.css';
 
 const STORAGE_KEY = 'orders_v1';
@@ -27,212 +28,11 @@ const defaultBranches = [
   'Shyama Jewels Puttur LLP (NDY)',
 ];
 
-const initialOrders = [
-  {
-    id: 'ORD-1001',
-    orderDate: '2024-01-15',
-    firstName: 'Rahul',
-    lastName: 'Sharma',
-    email: 'rahul.sharma@email.com',
-    phone: '+91 9876543210',
-    branch: 'Muliya Gold & Diamonds Puttur',
-    status: 'Delivered',
-    paymentStatus: 'Paid',
-    paymentMethod: 'UPI',
-    paymentId: 'PAY-782341',
-    totalAmount: 125000,
-    amountPaid: 125000,
-    items: [
-      { id: 'ITEM-001', productName: '22K Gold Ring', category: 'Ring', quantity: 1, weight: '8.5g', purity: '22K', makingCharges: 3500, price: 45000, totalPrice: 48500, description: 'Traditional 22K gold ring with intricate design' },
-      { id: 'ITEM-002', productName: '18K Gold Chain', category: 'Chain', quantity: 1, weight: '12g', purity: '18K', makingCharges: 2500, price: 76500, totalPrice: 79000, description: 'Elegant 18K gold chain for daily wear' }
-    ],
-    shippingAddress: { address: '123 MG Road', city: 'Puttur', state: 'Karnataka', zipCode: '574201', country: 'India' },
-    billingAddress: { address: '123 MG Road', city: 'Puttur', state: 'Karnataka', zipCode: '574201', country: 'India' }
-  },
-  {
-    id: 'ORD-1002',
-    orderDate: '2024-01-16',
-    firstName: 'Priya',
-    lastName: 'Patel',
-    email: 'priya.patel@email.com',
-    phone: '+91 9876543211',
-    branch: 'Muliya Gold & Diamonds Bengaluru',
-    status: 'Shipped',
-    paymentStatus: 'Paid',
-    paymentMethod: 'Credit Card',
-    paymentId: 'PAY-782342',
-    totalAmount: 85000,
-    amountPaid: 85000,
-    items: [
-      { id: 'ITEM-003', productName: '18K Gold Chain', category: 'Chain', quantity: 1, weight: '10g', purity: '18K', makingCharges: 2000, price: 83000, totalPrice: 85000, description: 'Premium quality 18K gold chain' }
-    ],
-    shippingAddress: { address: '456 Koramangala', city: 'Bengaluru', state: 'Karnataka', zipCode: '560034', country: 'India' },
-    billingAddress: { address: '456 Koramangala', city: 'Bengaluru', state: 'Karnataka', zipCode: '560034', country: 'India' }
-  },
-  {
-    id: 'ORD-1003',
-    orderDate: '2024-01-17',
-    firstName: 'Amit',
-    lastName: 'Kumar',
-    email: 'amit.kumar@email.com',
-    phone: '+91 9876543212',
-    branch: 'Muliya Gold & Diamonds Madikeri',
-    status: 'Processing',
-    paymentStatus: 'Pending',
-    paymentMethod: 'Bank Transfer',
-    paymentId: 'PAY-PENDING',
-    totalAmount: 210000,
-    amountPaid: 0,
-    items: [
-      { id: 'ITEM-004', productName: 'Diamond Earrings', category: 'Earrings', quantity: 1, weight: '5g', purity: '18K', diamondWeight: '0.5ct', makingCharges: 8000, price: 202000, totalPrice: 210000, description: 'Brilliant cut diamond stud earrings' }
-    ],
-    shippingAddress: { address: '789 Coorg Hills', city: 'Madikeri', state: 'Karnataka', zipCode: '571201', country: 'India' },
-    billingAddress: { address: '789 Coorg Hills', city: 'Madikeri', state: 'Karnataka', zipCode: '571201', country: 'India' }
-  },
-  {
-    id: 'ORD-1004',
-    orderDate: '2024-01-18',
-    firstName: 'Sunita',
-    lastName: 'Devi',
-    email: 'sunita.devi@email.com',
-    phone: '+91 9876543213',
-    branch: 'Shyama Jewels Sourcing LLP',
-    status: 'Delivered',
-    paymentStatus: 'Paid',
-    paymentMethod: 'Cash',
-    paymentId: 'PAY-782344',
-    totalAmount: 45000,
-    amountPaid: 45000,
-    items: [
-      { id: 'ITEM-005', productName: '22K Gold Bangle', category: 'Bangle', quantity: 1, weight: '6g', purity: '22K', makingCharges: 1500, price: 43500, totalPrice: 45000, description: 'Traditional South Indian style bangle' }
-    ],
-    shippingAddress: { address: '321 Temple Road', city: 'Puttur', state: 'Karnataka', zipCode: '574201', country: 'India' },
-    billingAddress: { address: '321 Temple Road', city: 'Puttur', state: 'Karnataka', zipCode: '574201', country: 'India' }
-  },
-  {
-    id: 'ORD-1005',
-    orderDate: '2024-01-19',
-    firstName: 'Vikram',
-    lastName: 'Singh',
-    email: 'vikram.singh@email.com',
-    phone: '+91 9876543214',
-    branch: 'Muliya Gold & Diamonds Belthangady',
-    status: 'Processing',
-    paymentStatus: 'Paid',
-    paymentMethod: 'UPI',
-    paymentId: 'PAY-782345',
-    totalAmount: 178000,
-    amountPaid: 178000,
-    items: [
-      { id: 'ITEM-006', productName: 'Platinum Ring', category: 'Ring', quantity: 1, weight: '6g', purity: 'Pt950', makingCharges: 5000, price: 173000, totalPrice: 178000, description: 'Premium platinum ring with diamond accent' }
-    ],
-    shippingAddress: { address: '55 Main Street', city: 'Belthangady', state: 'Karnataka', zipCode: '574214', country: 'India' },
-    billingAddress: { address: '55 Main Street', city: 'Belthangady', state: 'Karnataka', zipCode: '574214', country: 'India' }
-  },
-  {
-    id: 'ORD-1006',
-    orderDate: '2024-01-20',
-    firstName: 'Neha',
-    lastName: 'Gupta',
-    email: 'neha.gupta@email.com',
-    phone: '+91 9876543215',
-    branch: 'Muliya Gold & Diamonds Bengaluru',
-    status: 'Cancelled',
-    paymentStatus: 'Failed',
-    paymentMethod: 'Credit Card',
-    paymentId: 'PAY-FAILED',
-    totalAmount: 95000,
-    amountPaid: 0,
-    items: [
-      { id: 'ITEM-007', productName: 'Gold Necklace', category: 'Necklace', quantity: 1, weight: '15g', purity: '22K', makingCharges: 4500, price: 90500, totalPrice: 95000, description: 'Traditional gold necklace with antique finish' }
-    ],
-    shippingAddress: { address: '88 JP Nagar', city: 'Bengaluru', state: 'Karnataka', zipCode: '560078', country: 'India' },
-    billingAddress: { address: '88 JP Nagar', city: 'Bengaluru', state: 'Karnataka', zipCode: '560078', country: 'India' }
-  },
-  {
-    id: 'ORD-1007',
-    orderDate: '2024-01-21',
-    firstName: 'Rajesh',
-    lastName: 'Kumar',
-    email: 'rajesh.kumar@email.com',
-    phone: '+91 9876543216',
-    branch: 'Muliya Gold & Diamonds Puttur',
-    status: 'Shipped',
-    paymentStatus: 'Paid',
-    paymentMethod: 'UPI',
-    paymentId: 'PAY-782347',
-    totalAmount: 145000,
-    amountPaid: 145000,
-    items: [
-      { id: 'ITEM-008', productName: 'Gold Bracelet', category: 'Bracelet', quantity: 1, weight: '11g', purity: '22K', makingCharges: 3200, price: 141800, totalPrice: 145000, description: 'Elegant 22K gold bracelet for women' }
-    ],
-    shippingAddress: { address: '77 College Road', city: 'Puttur', state: 'Karnataka', zipCode: '574201', country: 'India' },
-    billingAddress: { address: '77 College Road', city: 'Puttur', state: 'Karnataka', zipCode: '574201', country: 'India' }
-  },
-  {
-    id: 'ORD-1008',
-    orderDate: '2024-01-22',
-    firstName: 'Anita',
-    lastName: 'Sharma',
-    email: 'anita.sharma@email.com',
-    phone: '+91 9876543217',
-    branch: 'Shyama Jewels Puttur LLP (NDY)',
-    status: 'Delivered',
-    paymentStatus: 'Paid',
-    paymentMethod: 'Cash',
-    paymentId: 'PAY-782348',
-    totalAmount: 65000,
-    amountPaid: 65000,
-    items: [
-      { id: 'ITEM-009', productName: 'Silver Anklet', category: 'Anklet', quantity: 2, weight: '25g', purity: '925', makingCharges: 1000, price: 64000, totalPrice: 65000, description: 'Traditional silver anklet pair' }
-    ],
-    shippingAddress: { address: '44 Gandhi Road', city: 'Puttur', state: 'Karnataka', zipCode: '574201', country: 'India' },
-    billingAddress: { address: '44 Gandhi Road', city: 'Puttur', state: 'Karnataka', zipCode: '574201', country: 'India' }
-  },
-  {
-    id: 'ORD-1009',
-    orderDate: '2024-01-23',
-    firstName: 'Mohit',
-    lastName: 'Verma',
-    email: 'mohit.verma@email.com',
-    phone: '+91 9876543218',
-    branch: 'Muliya Gold & Diamonds Bengaluru',
-    status: 'Delivered',
-    paymentStatus: 'Paid',
-    paymentMethod: 'Credit Card',
-    paymentId: 'PAY-782349',
-    totalAmount: 320000,
-    amountPaid: 320000,
-    items: [
-      { id: 'ITEM-010', productName: 'Diamond Ring', category: 'Ring', quantity: 1, weight: '4g', purity: '18K', diamondWeight: '1ct', makingCharges: 15000, price: 305000, totalPrice: 320000, description: 'Solitaire diamond engagement ring' }
-    ],
-    shippingAddress: { address: '99 Whitefield', city: 'Bengaluru', state: 'Karnataka', zipCode: '560066', country: 'India' },
-    billingAddress: { address: '99 Whitefield', city: 'Bengaluru', state: 'Karnataka', zipCode: '560066', country: 'India' }
-  },
-  {
-    id: 'ORD-1010',
-    orderDate: '2024-01-24',
-    firstName: 'Kavita',
-    lastName: 'Rao',
-    email: 'kavita.rao@email.com',
-    phone: '+91 9876543219',
-    branch: 'Muliya Gold & Diamonds Madikeri',
-    status: 'Pending',
-    paymentStatus: 'Pending',
-    paymentMethod: 'Bank Transfer',
-    paymentId: 'N/A',
-    totalAmount: 78000,
-    amountPaid: 0,
-    items: [
-      { id: 'ITEM-011', productName: 'Gold Pendant', category: 'Pendant', quantity: 1, weight: '6g', purity: '22K', makingCharges: 1800, price: 76200, totalPrice: 78000, description: '22K gold pendant with temple design' }
-    ],
-    shippingAddress: { address: '12 Fort Road', city: 'Madikeri', state: 'Karnataka', zipCode: '571201', country: 'India' },
-    billingAddress: { address: '12 Fort Road', city: 'Madikeri', state: 'Karnataka', zipCode: '571201', country: 'India' }
-  },
-];
+
 
 export default function Orders() {
   const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [paymentFilter, setPaymentFilter] = useState('All');
@@ -241,35 +41,104 @@ export default function Orders() {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const itemsPerPage = 10;
 
-  useEffect(() => {
-    const stored = safeParse(localStorage.getItem(STORAGE_KEY), null);
-    if (stored && stored.length > 0) {
-      setOrders(stored);
-    } else {
-      setOrders(initialOrders);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(initialOrders));
+  // Helper functions moved up to fix ReferenceError
+  const getCustomerName = (order) => {
+    if (order.firstName || order.lastName) {
+      return `${order.firstName ?? ''} ${order.lastName ?? ''}`.trim();
     }
+    return order.customer_name ?? order.user_name ?? order.name ?? 'Guest Customer';
+  };
+
+  const getFirstProduct = (order) => {
+    if (order.items?.[0]?.productName) return order.items[0].productName;
+    return order.product_name ?? order.item_name ?? order.product ?? '-';
+  };
+
+  const getItemCount = (order) => {
+    if (Array.isArray(order.items)) return order.items.length;
+    return order.total_items ?? order.quantity ?? 1;
+  };
+
+  const getOrderId = (order) => {
+    const rawId = order.id ?? order.order_id ?? order.id_order ?? order._id;
+    if (typeof rawId === 'object' && rawId !== null) {
+      return rawId._id ?? rawId.id ?? JSON.stringify(rawId);
+    }
+    return String(rawId ?? 'ORD-000');
+  };
+
+  const getOrderDate = (order) => order.orderDate ?? order.order_date ?? order.created_at;
+  const getTotalAmount = (order) => Number(order.totalAmount ?? order.total_amount ?? order.total ?? 0);
+  const getAmountPaid = (order) => Number(order.amountPaid ?? order.amount_paid ?? order.paid_amount ?? 0);
+  const getPaymentStatus = (order) => order.paymentStatus ?? order.payment_status ?? 'Pending';
+  const getOrderStatus = (order) => order.status ?? order.order_status ?? 'Pending';
+  
+  const getPaymentId = (order) => {
+    const rawPid = order.paymentId ?? order.payment_id ?? order.transaction_id ?? '-';
+    if (typeof rawPid === 'object' && rawPid !== null) {
+      return rawPid.id ?? rawPid.transaction_id ?? JSON.stringify(rawPid);
+    }
+    return String(rawPid);
+  };
+
+  const safeRender = (value) => {
+    if (value === null || value === undefined) return '';
+    if (typeof value === 'object') {
+      return value.name ?? value.title ?? value.label ?? value._id ?? JSON.stringify(value);
+    }
+    return String(value);
+  };
+
+  useEffect(() => {
+    let isMounted = true;
+    setLoading(true);
+
+    api
+      .get(endpoints.orders)
+      .then((res) => {
+        console.log(res,"res");
+        
+        const normalized = res?.data ?? res?.Data ?? res?.result ?? res?.orders ?? res;
+        const orderList = Array.isArray(normalized) ? normalized : (normalized?.orders || []);
+        if (isMounted) {
+          setOrders(orderList);
+          setLoading(false);
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setOrders([]);
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(orders));
-  }, [orders]);
+ 
 
-  const filteredOrders = orders.filter(order => {
-    const fullName = `${order.firstName} ${order.lastName}`.toLowerCase();
-    const matchesSearch = 
-      order.id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      fullName.includes(searchTerm.toLowerCase()) ||
-      order.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.phone?.includes(searchTerm) ||
-      order.paymentId?.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesStatus = statusFilter === 'All' || order.status === statusFilter;
-    const matchesPayment = paymentFilter === 'All' || order.paymentStatus === paymentFilter;
-    const matchesBranch = branchFilter === 'All' || order.branch === branchFilter;
-    
-    return matchesSearch && matchesStatus && matchesPayment && matchesBranch;
-  });
+  const filteredOrders = useMemo(() => {
+    return orders.filter(order => {
+      const fullName = getCustomerName(order).toLowerCase();
+      const orderId = String(getOrderId(order)).toLowerCase();
+      const paymentId = String(getPaymentId(order)).toLowerCase();
+      
+      const matchesSearch = 
+        orderId.includes(searchTerm.toLowerCase()) ||
+        fullName.includes(searchTerm.toLowerCase()) ||
+        (order.email && order.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (order.phone && String(order.phone).includes(searchTerm)) ||
+        paymentId.includes(searchTerm.toLowerCase());
+      
+      const matchesStatus = statusFilter === 'All' || getOrderStatus(order) === statusFilter;
+      const matchesPayment = paymentFilter === 'All' || getPaymentStatus(order) === paymentFilter;
+      const matchesBranch = branchFilter === 'All' || order.branch === branchFilter;
+      
+      return matchesSearch && matchesStatus && matchesPayment && matchesBranch;
+    });
+  }, [orders, searchTerm, statusFilter, paymentFilter, branchFilter]);
 
   const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
   const paginatedOrders = filteredOrders.slice(
@@ -322,11 +191,6 @@ export default function Orders() {
     window.print();
   };
 
-  const getCustomerName = (order) => `${order.firstName} ${order.lastName}`;
-
-  const getFirstProduct = (order) => order.items?.[0]?.productName || '-';
-  const getItemCount = (order) => order.items?.length || 0;
-
   // Order List View
   const OrderListView = () => (
     <>
@@ -372,15 +236,15 @@ export default function Orders() {
           <span className="stat-label">Total Orders</span>
         </div>
         <div className="stat-card">
-          <span className="stat-value">{orders.filter(o => o.status === 'Pending').length}</span>
+          <span className="stat-value">{orders.filter(o => getOrderStatus(o) === 'Pending' || getOrderStatus(o) === 'Pending').length}</span>
           <span className="stat-label">Pending</span>
         </div>
         <div className="stat-card">
-          <span className="stat-value">{orders.filter(o => o.status === 'Delivered').length}</span>
+          <span className="stat-value">{orders.filter(o => getOrderStatus(o) === 'Delivered').length}</span>
           <span className="stat-label">Delivered</span>
         </div>
         <div className="stat-card">
-          <span className="stat-value">{formatCurrency(orders.reduce((sum, o) => sum + o.amountPaid, 0))}</span>
+          <span className="stat-value">{formatCurrency(orders.reduce((sum, o) => sum + getAmountPaid(o), 0))}</span>
           <span className="stat-label">Total Revenue</span>
         </div>
       </div>
@@ -402,66 +266,80 @@ export default function Orders() {
             </tr>
           </thead>
           <tbody>
-            {paginatedOrders.map((order, index) => (
-              <tr key={order.id} className="animate-fade-in" style={{ animationDelay: `${0.3 + index * 0.1}s`, opacity: 0, animationFillMode: 'forwards' }}>
-                <td>
-                  <div className="order-id-cell">
-                    <ShoppingBag size={16} />
-                    <span className="order-id">{order.id}</span>
-                  </div>
-                </td>
-                <td>
-                  <div className="order-date">
-                    <Calendar size={14} />
-                    <span>{formatDate(order.orderDate)}</span>
-                  </div>
-                </td>
-                <td>
-                  <div className="order-customer">
-                    <div className="customer-avatar-small">
-                      <User size={14} />
-                    </div>
-                    <span>{getCustomerName(order)}</span>
-                  </div>
-                </td>
-                <td>
-                  <span className="order-product">{getFirstProduct(order)}</span>
-                  <span className="order-items">{getItemCount(order)} item(s)</span>
-                </td>
-                <td>
-                  <span className="order-amount">{formatCurrency(order.totalAmount)}</span>
-                </td>
-                <td>
-                  <span className={`amount-paid ${order.amountPaid === 0 ? 'pending' : 'paid'}`}>
-                    {formatCurrency(order.amountPaid)}
-                  </span>
-                </td>
-                <td>
-                  <span className={`payment-status-badge ${order.paymentStatus.toLowerCase()}`}>
-                    {order.paymentStatus}
-                  </span>
-                </td>
-                <td>
-                  <span className={`order-status-badge ${order.status.toLowerCase()}`}>
-                    {getStatusIcon(order.status)}
-                    {order.status}
-                  </span>
-                </td>
-                <td>
-                  <span className="payment-id">{order.paymentId}</span>
-                </td>
-                <td>
-                  <div className="order-actions">
-                    <button className="action-btn view" onClick={() => setSelectedOrder(order)} title="View Order">
-                      <Eye size={16} />
-                    </button>
-                    <button className="action-btn download" onClick={() => handleDownloadInvoice(order)} title="Download Invoice">
-                      <Download size={16} />
-                    </button>
-                  </div>
+            {loading ? (
+              <tr>
+                <td colSpan="10" style={{ textAlign: 'center', padding: '3rem' }}>
+                  <div className="loading-spinner">Loading orders...</div>
                 </td>
               </tr>
-            ))}
+                ) : paginatedOrders.map((order, index) => {
+                  const orderId = getOrderId(order);
+                  const displayProduct = getFirstProduct(order);
+                  const productName = (displayProduct && typeof displayProduct === 'object') 
+                    ? (displayProduct.name ?? displayProduct.product_name ?? 'Product') 
+                    : displayProduct;
+
+                  return (
+                    <tr key={`${orderId}-${index}`} className="animate-fade-in" style={{ animationDelay: `${0.3 + index * 0.1}s`, opacity: 0, animationFillMode: 'forwards' }}>
+                      <td>
+                        <div className="order-id-cell">
+                          <ShoppingBag size={16} />
+                          <span className="order-id">{safeRender(orderId)}</span>
+                        </div>
+                      </td>
+                      <td>
+                        <div className="order-date">
+                          <Calendar size={14} />
+                          <span>{formatDate(getOrderDate(order))}</span>
+                        </div>
+                      </td>
+                      <td>
+                        <div className="order-customer">
+                          <div className="customer-avatar-small">
+                            <User size={14} />
+                          </div>
+                          <span>{safeRender(getCustomerName(order))}</span>
+                        </div>
+                      </td>
+                      <td>
+                        <span className="order-product">{safeRender(productName)}</span>
+                        <span className="order-items">{getItemCount(order)} item(s)</span>
+                      </td>
+                      <td>
+                        <span className="order-amount">{formatCurrency(getTotalAmount(order))}</span>
+                      </td>
+                      <td>
+                        <span className={`amount-paid ${getAmountPaid(order) === 0 ? 'pending' : 'paid'}`}>
+                          {formatCurrency(getAmountPaid(order))}
+                        </span>
+                      </td>
+                      <td>
+                        <span className={`payment-status-badge ${safeRender(getPaymentStatus(order)).toLowerCase()}`}>
+                          {safeRender(getPaymentStatus(order))}
+                        </span>
+                      </td>
+                      <td>
+                        <span className={`order-status-badge ${safeRender(getOrderStatus(order)).toLowerCase()}`}>
+                          {getStatusIcon(getOrderStatus(order))}
+                          {safeRender(getOrderStatus(order))}
+                        </span>
+                      </td>
+                      <td>
+                        <span className="payment-id">{safeRender(getPaymentId(order))}</span>
+                      </td>
+                      <td>
+                        <div className="order-actions">
+                          <button className="action-btn view" onClick={() => setSelectedOrder(order)} title="View Order">
+                            <Eye size={16} />
+                          </button>
+                          <button className="action-btn download" onClick={() => handleDownloadInvoice(order)} title="Download Invoice">
+                            <Download size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
           </tbody>
         </table>
 
@@ -523,17 +401,17 @@ export default function Orders() {
             <div className="order-info-id">
               <Package size={24} />
               <div>
-                <h3>{selectedOrder.id}</h3>
-                <span className="order-date">{formatDate(selectedOrder.orderDate)}</span>
+                <h3>{safeRender(getOrderId(selectedOrder))}</h3>
+                <span className="order-date">{formatDate(getOrderDate(selectedOrder))}</span>
               </div>
             </div>
             <div className="order-info-status">
-              <span className="status-badge-large" style={{ backgroundColor: `${getStatusColor(selectedOrder.status)}20`, color: getStatusColor(selectedOrder.status) }}>
-                {selectedOrder.status}
+              <span className="status-badge-large" style={{ backgroundColor: `${getStatusColor(getOrderStatus(selectedOrder))}20`, color: getStatusColor(getOrderStatus(selectedOrder)) }}>
+                {safeRender(getOrderStatus(selectedOrder))}
               </span>
-              <span className="payment-badge-large" style={{ backgroundColor: selectedOrder.paymentStatus === 'Paid' ? '#4caf5020' : '#ff980020', color: selectedOrder.paymentStatus === 'Paid' ? '#4caf50' : '#ff9800' }}>
-                {selectedOrder.paymentStatus === 'Paid' && <CheckCircle size={14} />}
-                {selectedOrder.paymentStatus}
+              <span className="payment-badge-large" style={{ backgroundColor: getPaymentStatus(selectedOrder) === 'Paid' ? '#4caf5020' : '#ff980020', color: getPaymentStatus(selectedOrder) === 'Paid' ? '#4caf50' : '#ff9800' }}>
+                {getPaymentStatus(selectedOrder) === 'Paid' && <CheckCircle size={14} />}
+                {safeRender(getPaymentStatus(selectedOrder))}
               </span>
             </div>
           </div>
@@ -543,10 +421,9 @@ export default function Orders() {
             <div className="detail-section">
               <h4><User size={18} /> Customer Details</h4>
               <div className="customer-info">
-                <div className="info-row"><span className="info-label">First Name</span><span className="info-value">{selectedOrder.firstName}</span></div>
-                <div className="info-row"><span className="info-label">Last Name</span><span className="info-value">{selectedOrder.lastName}</span></div>
-                <div className="info-row"><span className="info-label">Email</span><span className="info-value">{selectedOrder.email}</span></div>
-                <div className="info-row"><span className="info-label">Phone</span><span className="info-value">{selectedOrder.phone}</span></div>
+                <div className="info-row"><span className="info-label">Customer Name</span><span className="info-value">{safeRender(getCustomerName(selectedOrder))}</span></div>
+                <div className="info-row"><span className="info-label">Email</span><span className="info-value">{safeRender(selectedOrder.email ?? '-')}</span></div>
+                <div className="info-row"><span className="info-label">Phone</span><span className="info-value">{safeRender(selectedOrder.phone ?? '-')}</span></div>
               </div>
             </div>
 
@@ -554,9 +431,9 @@ export default function Orders() {
             <div className="detail-section">
               <h4><Building2 size={18} /> Purchase Branch</h4>
               <div className="branch-info">
-                <div className="info-row"><span className="info-label">Branch Name</span><span className="info-value highlight">{selectedOrder.branch}</span></div>
-                <div className="info-row"><span className="info-label">Order Date</span><span className="info-value">{formatDate(selectedOrder.orderDate)}</span></div>
-                <div className="info-row"><span className="info-label">Payment Method</span><span className="info-value">{selectedOrder.paymentMethod}</span></div>
+                <div className="info-row"><span className="info-label">Branch Name</span><span className="info-value highlight">{safeRender(selectedOrder.branch ?? '-')}</span></div>
+                <div className="info-row"><span className="info-label">Order Date</span><span className="info-value">{formatDate(getOrderDate(selectedOrder))}</span></div>
+                <div className="info-row"><span className="info-label">Payment Method</span><span className="info-value">{safeRender(selectedOrder.paymentMethod ?? '-')}</span></div>
               </div>
             </div>
 

@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { LayoutDashboard, Gem, ShoppingCart, Users, Settings, LogOut, Building2, Image, FileText, UserCircle, Ticket, MessageSquare, FolderOpen, Briefcase, Wallet, ChevronDown, ChevronRight, TrendingUp, Receipt, RefreshCw, Shield, Coins, Hammer } from 'lucide-react';
+import { LayoutDashboard, Gem, ShoppingCart, Users, Settings, LogOut, Building2, Image, FileText, UserCircle, Ticket, MessageSquare, FolderOpen, Briefcase, Wallet, ChevronDown, ChevronRight, TrendingUp, Receipt, RefreshCw, Shield, Coins, Hammer, Grid } from 'lucide-react';
 import './Sidebar.css';
 
 const navItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'orders', label: 'Orders', icon: ShoppingCart },
+  { id: 'categories', label: 'Categories', icon: Grid },
   { id: 'branches', label: 'Branches', icon: Building2 },
   { id: 'banner', label: 'Website Banner', icon: Image },
   { id: 'inventory', label: 'Inventory', icon: Gem },
