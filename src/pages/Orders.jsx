@@ -42,22 +42,31 @@ export default function Orders() {
   const itemsPerPage = 10;
 
   // Helper functions moved up to fix ReferenceError
-  const getCustomerName = (order) => {
-    if (order.firstName || order.lastName) {
-      return `${order.firstName ?? ''} ${order.lastName ?? ''}`.trim();
-    }
-    return order.customer_name ?? order.user_name ?? order.name ?? 'Guest Customer';
-  };
+const getCustomerName = (order) => {
+  if (order.user?.firstname || order.user?.lastname) {
+    return `${order.user.firstname ?? ''} ${order.user.lastname ?? ''}`.trim();
+  }
+  if (order.firstName || order.lastName) {
+    return `${order.firstName ?? ''} ${order.lastName ?? ''}`.trim();
+  }
+  return order.customer_name ?? order.user_name ?? order.name ?? 'Guest Customer';
+};
 
-  const getFirstProduct = (order) => {
-    if (order.items?.[0]?.productName) return order.items[0].productName;
-    return order.product_name ?? order.item_name ?? order.product ?? '-';
-  };
+const getFirstProduct = (order) => {
+  if (order.items?.[0]?.productName) return order.items[0].productName;
+  if (Array.isArray(order.productIds) && order.productIds.length > 0) {
+    const p = order.productIds[0];
+    if (typeof p === 'object' && p !== null) return p.name ?? p.productName ?? 'Product';
+    return String(p);
+  }
+  return order.product_name ?? order.item_name ?? order.product ?? '-';
+};
 
-  const getItemCount = (order) => {
-    if (Array.isArray(order.items)) return order.items.length;
-    return order.total_items ?? order.quantity ?? 1;
-  };
+ const getItemCount = (order) => {
+  if (Array.isArray(order.items)) return order.items.length;
+  if (Array.isArray(order.productIds)) return order.productIds.length;
+  return order.total_items ?? order.quantity ?? 1;
+};
 
   const getOrderId = (order) => {
     const rawId = order.id ?? order.order_id ?? order.id_order ?? order._id;
@@ -73,21 +82,22 @@ export default function Orders() {
   const getPaymentStatus = (order) => order.paymentStatus ?? order.payment_status ?? 'Pending';
   const getOrderStatus = (order) => order.status ?? order.order_status ?? 'Pending';
   
-  const getPaymentId = (order) => {
-    const rawPid = order.paymentId ?? order.payment_id ?? order.transaction_id ?? '-';
-    if (typeof rawPid === 'object' && rawPid !== null) {
-      return rawPid.id ?? rawPid.transaction_id ?? JSON.stringify(rawPid);
-    }
-    return String(rawPid);
-  };
+const getPaymentId = (order) => {
+  const rawPid = order.paymentId ?? order.payment_id ?? order.razorpay_payment_id ?? order.transaction_id ?? '-';
+  if (typeof rawPid === 'object' && rawPid !== null) {
+    return rawPid.id ?? rawPid.transaction_id ?? JSON.stringify(rawPid);
+  }
+  return String(rawPid);
+};
 
-  const safeRender = (value) => {
-    if (value === null || value === undefined) return '';
-    if (typeof value === 'object') {
-      return value.name ?? value.title ?? value.label ?? value._id ?? JSON.stringify(value);
-    }
-    return String(value);
-  };
+const safeRender = (value) => {
+  if (value === null || value === undefined) return '';
+  if (Array.isArray(value)) return value.length > 0 ? safeRender(value[0]) : '';
+  if (typeof value === 'object') {
+    return value.name ?? value.title ?? value.label ?? value._id ?? JSON.stringify(value);
+  }
+  return String(value);
+};
 
   useEffect(() => {
     let isMounted = true;
@@ -417,25 +427,27 @@ export default function Orders() {
           </div>
 
           <div className="detail-grid">
-            {/* Customer Details */}
-            <div className="detail-section">
-              <h4><User size={18} /> Customer Details</h4>
-              <div className="customer-info">
-                <div className="info-row"><span className="info-label">Customer Name</span><span className="info-value">{safeRender(getCustomerName(selectedOrder))}</span></div>
-                <div className="info-row"><span className="info-label">Email</span><span className="info-value">{safeRender(selectedOrder.email ?? '-')}</span></div>
-                <div className="info-row"><span className="info-label">Phone</span><span className="info-value">{safeRender(selectedOrder.phone ?? '-')}</span></div>
-              </div>
-            </div>
+          {/* Shipping Address */}
+<div className="detail-section">
+  <h4><MapPin size={18} /> Shipping Address</h4>
+  <div className="address-info">
+    <p>{selectedOrder.shippingAddress?.address ?? '-'}</p>
+    <p>{selectedOrder.shippingAddress?.city ?? ''}{selectedOrder.shippingAddress?.state ? `, ${selectedOrder.shippingAddress.state}` : ''}</p>
+    <p>{selectedOrder.shippingAddress?.zipCode ?? ''}</p>
+    <p>{selectedOrder.shippingAddress?.country ?? ''}</p>
+  </div>
+</div>
 
-            {/* Purchase Branch */}
-            <div className="detail-section">
-              <h4><Building2 size={18} /> Purchase Branch</h4>
-              <div className="branch-info">
-                <div className="info-row"><span className="info-label">Branch Name</span><span className="info-value highlight">{safeRender(selectedOrder.branch ?? '-')}</span></div>
-                <div className="info-row"><span className="info-label">Order Date</span><span className="info-value">{formatDate(getOrderDate(selectedOrder))}</span></div>
-                <div className="info-row"><span className="info-label">Payment Method</span><span className="info-value">{safeRender(selectedOrder.paymentMethod ?? '-')}</span></div>
-              </div>
-            </div>
+{/* Billing Address */}
+<div className="detail-section">
+  <h4><CreditCard size={18} /> Billing Address</h4>
+  <div className="address-info">
+    <p>{selectedOrder.billingAddress?.address ?? '-'}</p>
+    <p>{selectedOrder.billingAddress?.city ?? ''}{selectedOrder.billingAddress?.state ? `, ${selectedOrder.billingAddress.state}` : ''}</p>
+    <p>{selectedOrder.billingAddress?.zipCode ?? ''}</p>
+    <p>{selectedOrder.billingAddress?.country ?? ''}</p>
+  </div>
+</div>
 
             {/* Shipping Address */}
             <div className="detail-section">
