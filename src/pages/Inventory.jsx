@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Search, Plus, Filter, Edit, Trash2 } from 'lucide-react';
+import { api, endpoints, IMAGE_BASE_URL } from '../api';
 import ProductModal from '../components/ProductModal';
 import './Inventory.css';
 
@@ -12,16 +13,71 @@ const initialInventory = [
 ];
 
 export default function Inventory() {
-  const [items, setItems] = useState(() => {
-    const saved = localStorage.getItem('inventoryItems');
-    return saved ? JSON.parse(saved) : initialInventory;
-  });
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
 
   useEffect(() => {
-    localStorage.setItem('inventoryItems', JSON.stringify(items));
-  }, [items]);
+    let isMounted = true;
+    setLoading(true);
+
+    api.get(endpoints.inventory)
+      .then((res) => {
+        const normalized = res?.data ?? res?.Data ?? res?.result ?? res?.Result ?? res;
+        const productList = Array.isArray(normalized) ? normalized : (normalized?.products || normalized?.productList || []);
+        if (isMounted) {
+          setItems(productList);
+          setLoading(false);
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to fetch products:', err);
+        if (isMounted) {
+          setItems(initialInventory);
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const safeRender = (value) => {
+    if (value === null || value === undefined) return '';
+    if (typeof value === 'object') {
+      return value.name ?? value.title ?? value.label ?? value._id ?? JSON.stringify(value);
+    }
+    return String(value);
+  };
+
+  const getImageUrl = (item) => {
+    // Check for product_image array/field as commonly found in product APIs
+    const imagePath = item.imageUrl || item.image || item.product_image || (Array.isArray(item.product_images) && item.product_images.length > 0 ? item.product_images[0] : item.product_images);
+    
+    // Check for images nested in an object if that's how the API returns it
+    const finalPath = imagePath || (item.images && Array.isArray(item.images) && item.images.length > 0 ? (typeof item.images[0] === 'string' ? item.images[0] : item.images[0].url) : null);
+    
+    if (!finalPath) return null;
+    
+    // If it's already a full URL (Google Storage, etc.)
+    if (typeof finalPath === 'string' && finalPath.startsWith('http')) return finalPath;
+    
+    // If it's a relative path, prefix with base URL
+    const pathStr = String(finalPath);
+    const cleanPath = pathStr.startsWith('/') ? pathStr : `/${pathStr}`;
+    return `${IMAGE_BASE_URL}${cleanPath}`;
+  };
+
+  const filteredItems = useMemo(() => {
+    return items.filter(item => {
+      const name = safeRender(item.productName || item.name || item.product_name).toLowerCase();
+      const id = safeRender(item._id || item.id || item.product_id).toLowerCase();
+      return name.includes(searchTerm.toLowerCase()) || id.includes(searchTerm.toLowerCase());
+    });
+  }, [items, searchTerm]);
 
   const handleSaveProduct = (productData) => {
     if (editingItem) {
@@ -66,7 +122,13 @@ export default function Inventory() {
       <div className="inventory-header">
         <div className="search-bar">
           <Search size={18} className="search-icon" />
-          <input type="text" placeholder="Search inventory items..." style={{ width: '300px' }} />
+          <input 
+            type="text" 
+            placeholder="Search inventory items..." 
+            style={{ width: '300px' }} 
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
         </div>
         <div className="inventory-actions">
           <button className="button outline">
@@ -94,34 +156,65 @@ export default function Inventory() {
             </tr>
           </thead>
           <tbody>
-            {items.map((item, index) => (
-              <tr key={item.id} className="animate-fade-in" style={{ animationDelay: `${0.3 + index * 0.1}s`, opacity: 0, animationFillMode: 'forwards' }}>
-                <td>
-                  <div className="item-details">
-                    <div className="item-image-placeholder"></div>
-                    <div>
-                      <div className="item-name">{item.productName}</div>
-                      <div className="item-id">{item.id}</div>
-                    </div>
-                  </div>
-                </td>
-                <td>{item.category}</td>
-                <td>{item.material}</td>
-                <td style={{ fontWeight: 600, color: 'var(--accent-main)' }}>₹ {item.finalPrice?.toLocaleString('en-IN') || 0}</td>
-                <td>
-                  <span className={`status-badge ${getStockStatus(item.stock?.availableStock, item.stock?.minStockAlert).replace(/ /g, '-').toLowerCase()}`}>
-                    {getStockStatus(item.stock?.availableStock, item.stock?.minStockAlert)}
-                  </span>
-                </td>
-                <td>{item.stock?.availableStock || 0}</td>
-                <td>
-                  <div className="action-buttons">
-                    <button className="icon-button small" onClick={() => handleEditItem(item)}><Edit size={16} /></button>
-                    <button className="icon-button small danger" onClick={() => handleDeleteItem(item.id)}><Trash2 size={16} /></button>
-                  </div>
+            {loading ? (
+              <tr>
+                <td colSpan="7" style={{ textAlign: 'center', padding: '3rem' }}>
+                  <div className="loading-spinner">Loading products...</div>
                 </td>
               </tr>
-            ))}
+            ) : filteredItems.map((item, index) => {
+              const itemId = item._id || item.id || item.product_id;
+              const name = item.productName || item.name || item.product_name;
+              const price = item.finalPrice || item.price || item.total_price || item.originalPrice || 0;
+              const stock = item.stock?.availableStock ?? item.stock ?? item.quantity ?? item.total_stock ?? 0;
+              const minAlert = item.stock?.minStockAlert ?? 5;
+              const imageUrl = getImageUrl(item);
+              const categoryName = (typeof item.category === 'object') ? (item.category.name || item.category.title) : item.category;
+
+              return (
+                <tr key={`${itemId}-${index}`} className="animate-fade-in" style={{ animationDelay: `${0.3 + index * 0.1}s`, opacity: 0, animationFillMode: 'forwards' }}>
+                  <td>
+                    <div className="item-details">
+                      <div className="item-image-container">
+                        {imageUrl ? (
+                          <img 
+                            src={imageUrl} 
+                            alt={name} 
+                            className="item-thumb" 
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.style.display = 'none';
+                              e.target.parentNode.classList.add('image-error');
+                            }}
+                          />
+                        ) : (
+                          <div className="item-image-placeholder"></div>
+                        )}
+                      </div>
+                      <div>
+                        <div className="item-name">{safeRender(name)}</div>
+                        <div className="item-id">{safeRender(itemId)}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td>{safeRender(categoryName || '-')}</td>
+                  <td>{safeRender(item.material || item.type || item.product_type || '-')}</td>
+                  <td style={{ fontWeight: 600, color: 'var(--accent-main)' }}>₹ {Number(price).toLocaleString('en-IN')}</td>
+                  <td>
+                    <span className={`status-badge ${getStockStatus(Number(stock), minAlert).replace(/ /g, '-').toLowerCase()}`}>
+                      {getStockStatus(Number(stock), minAlert)}
+                    </span>
+                  </td>
+                  <td>{stock}</td>
+                  <td>
+                    <div className="action-buttons">
+                      <button className="icon-button small" onClick={() => handleEditItem(item)}><Edit size={16} /></button>
+                      <button className="icon-button small danger" onClick={() => handleDeleteItem(itemId)}><Trash2 size={16} /></button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

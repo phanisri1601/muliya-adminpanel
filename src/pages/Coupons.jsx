@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Search, Plus, Ticket, Edit, Trash2, X, Save, Tag, Percent, Hash, ToggleLeft, ToggleRight, Eye } from 'lucide-react';
+import { api, endpoints } from '../api';
 import './Coupons.css';
 
 const STORAGE_KEY = 'coupons_v1';
@@ -163,30 +164,52 @@ const initialCoupons = [
 
 export default function Coupons() {
   const [coupons, setCoupons] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCoupon, setEditingCoupon] = useState(null);
   const [formData, setFormData] = useState(initialFormData);
 
   useEffect(() => {
-    const stored = safeParse(localStorage.getItem(STORAGE_KEY), null);
-    if (stored && stored.length > 0) {
-      setCoupons(stored);
-    } else {
-      setCoupons(initialCoupons);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(initialCoupons));
-    }
+    let isMounted = true;
+    setLoading(true);
+
+    api.get(endpoints.coupons)
+      .then((res) => {
+        const normalized = res?.data ?? res?.Data ?? res?.result ?? res?.Result ?? res;
+        const couponList = Array.isArray(normalized) ? normalized : (normalized?.coupons || normalized?.couponlist || []);
+        if (isMounted) {
+          setCoupons(couponList);
+          setLoading(false);
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to fetch coupons:', err);
+        if (isMounted) {
+          setCoupons(initialCoupons);
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(coupons));
-  }, [coupons]);
+  const safeRender = (value) => {
+    if (value === null || value === undefined) return '';
+    if (typeof value === 'object') {
+      return value.name ?? value.title ?? value.label ?? value._id ?? JSON.stringify(value);
+    }
+    return String(value);
+  };
 
-  const filteredCoupons = coupons.filter(coupon =>
-    coupon.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    coupon.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    COUPON_TYPES.find(t => t.value === coupon.couponType)?.label.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredCoupons = useMemo(() => {
+    return coupons.filter(coupon =>
+      (coupon.coupon_code || coupon.code || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (coupon.description || '').toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [coupons, searchTerm]);
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -348,77 +371,91 @@ export default function Coupons() {
               </tr>
             </thead>
             <tbody>
-              {filteredCoupons.map((coupon, index) => (
-                <tr key={coupon.id} className={`animate-fade-in ${isExpired(coupon) ? 'expired' : ''}`} style={{ animationDelay: `${0.3 + index * 0.1}s`, opacity: 0, animationFillMode: 'forwards' }}>
-                  <td>
-                    <div className="coupon-code-cell">
-                      <Tag size={16} />
-                      <span className="coupon-code">{coupon.code}</span>
-                      {coupon.isShowDisplay && <span className="display-badge"><Eye size={12} /></span>}
-                    </div>
-                  </td>
-                  <td>
-                    <div className="coupon-type-desc">
-                      <span className="coupon-type">
-                        {COUPON_TYPES.find(t => t.value === coupon.couponType)?.label}
-                      </span>
-                      <span className="coupon-desc">{coupon.description}</span>
-                    </div>
-                  </td>
-                  <td>
-                    <span className="coupon-discount">
-                      {coupon.couponType === 'percentage' ? (
-                        <><Percent size={14} /> {coupon.discount}%</>
-                      ) : coupon.couponType === 'fixed' ? (
-                        <>₹ {coupon.discount}</>
-                      ) : (
-                        <>₹ {coupon.discount}</>
-                      )}
-                    </span>
-                  </td>
-                  <td>
-                    <span className="coupon-limit">₹ {coupon.maxLimit || '-'}</span>
-                  </td>
-                  <td>
-                    <span className={`applicable-badge ${isGoldRelated(coupon.applicableTo) ? 'gold' : ''}`}>
-                      {APPLICABLE_CATEGORIES.find(c => c.value === coupon.applicableTo)?.label}
-                    </span>
-                  </td>
-                  <td>
-                    <div className="coupon-validity">
-                      <span>{coupon.startDate ? formatDate(coupon.startDate) : 'No start'}</span>
-                      <span className="validity-separator">→</span>
-                      <span>{coupon.endDate ? formatDate(coupon.endDate) : 'No end'}</span>
-                    </div>
-                  </td>
-                  <td>
-                    <div className="coupon-usage">
-                      <span>{coupon.usageCount || 0}</span>
-                      <span className="usage-separator">/</span>
-                      <span>{coupon.usageLimit || '∞'}</span>
-                    </div>
-                  </td>
-                  <td>
-                    <button
-                      className={`toggle-btn ${coupon.isActive ? 'active' : 'inactive'}`}
-                      onClick={() => toggleActive(coupon.id)}
-                      title={coupon.isActive ? 'Active' : 'Inactive'}
-                    >
-                      {coupon.isActive ? <ToggleRight size={24} /> : <ToggleLeft size={24} />}
-                    </button>
-                  </td>
-                  <td>
-                    <div className="action-buttons">
-                      <button className="icon-button small" onClick={() => handleEdit(coupon)} title="Edit">
-                        <Edit size={16} />
-                      </button>
-                      <button className="icon-button small danger" onClick={() => handleDelete(coupon.id)} title="Delete">
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
+              {loading ? (
+                <tr>
+                  <td colSpan="9" style={{ textAlign: 'center', padding: '3rem' }}>
+                    <div className="loading-spinner">Loading coupons...</div>
                   </td>
                 </tr>
-              ))}
+              ) : filteredCoupons.map((coupon, index) => {
+                const id = coupon._id || coupon.id;
+                const code = coupon.coupon_code || coupon.code;
+                const type = coupon.coupon_type || coupon.couponType || 'percentage';
+                const discount = coupon.discount_value || coupon.discount || 0;
+                const maxLimit = coupon.max_discount || coupon.maxLimit || 0;
+                const applicable = coupon.category_name || coupon.applicableTo || 'All';
+                const status = coupon.status === 'Active' || coupon.isActive === true || coupon.isActive === 'true';
+
+                return (
+                  <tr key={`${id}-${index}`} className={`animate-fade-in ${isExpired(coupon) ? 'expired' : ''}`} style={{ animationDelay: `${0.3 + index * 0.1}s`, opacity: 0, animationFillMode: 'forwards' }}>
+                    <td>
+                      <div className="coupon-code-cell">
+                        <Tag size={16} />
+                        <span className="coupon-code">{safeRender(code)}</span>
+                        {(coupon.isShowDisplay || coupon.show_in_app) && <span className="display-badge"><Eye size={12} /></span>}
+                      </div>
+                    </td>
+                    <td>
+                      <div className="coupon-type-desc">
+                        <span className="coupon-type">
+                          {COUPON_TYPES.find(t => t.value === type)?.label || type}
+                        </span>
+                        <span className="coupon-desc">{safeRender(coupon.description)}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <span className="coupon-discount">
+                        {type === 'percentage' || type === 'Percentage' ? (
+                          <><Percent size={14} /> {discount}%</>
+                        ) : (
+                          <>₹ {discount}</>
+                        )}
+                      </span>
+                    </td>
+                    <td>
+                      <span className="coupon-limit">₹ {maxLimit || '-'}</span>
+                    </td>
+                    <td>
+                      <span className={`applicable-badge ${isGoldRelated(applicable) ? 'gold' : ''}`}>
+                        {applicable}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="coupon-validity">
+                        <span>{coupon.start_date || coupon.startDate ? formatDate(coupon.start_date || coupon.startDate) : 'No start'}</span>
+                        <span className="validity-separator">→</span>
+                        <span>{coupon.end_date || coupon.endDate ? formatDate(coupon.end_date || coupon.endDate) : 'No end'}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="coupon-usage">
+                        <span>{coupon.usage_count || coupon.usageCount || 0}</span>
+                        <span className="usage-separator">/</span>
+                        <span>{coupon.usage_limit || coupon.usageLimit || '∞'}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <button
+                        className={`toggle-btn ${status ? 'active' : 'inactive'}`}
+                        onClick={() => toggleActive(id)}
+                        title={status ? 'Active' : 'Inactive'}
+                      >
+                        {status ? <ToggleRight size={24} /> : <ToggleLeft size={24} />}
+                      </button>
+                    </td>
+                    <td>
+                      <div className="action-buttons">
+                        <button className="icon-button small" onClick={() => handleEdit(coupon)} title="Edit">
+                          <Edit size={16} />
+                        </button>
+                        <button className="icon-button small danger" onClick={() => handleDelete(id)} title="Delete">
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
