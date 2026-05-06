@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Search, Plus, User, Mail, Phone, Calendar, Edit, Trash2, X, Save } from 'lucide-react';
+import { api, endpoints } from '../api';
 import './Customers.css';
 
 const STORAGE_KEY = 'customers_v1';
@@ -198,6 +199,7 @@ const initialCustomers = [
 
 export default function Customers() {
   const [customers, setCustomers] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState(null);
@@ -215,24 +217,49 @@ export default function Customers() {
   });
 
   useEffect(() => {
-    const stored = safeParse(localStorage.getItem(STORAGE_KEY), null);
-    if (stored && stored.length > 0) {
-      setCustomers(stored);
-    } else {
-      setCustomers(initialCustomers);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(initialCustomers));
-    }
+    let isMounted = true;
+    setLoading(true);
+
+    api.get(endpoints.customers)
+      .then((res) => {
+        const normalized = res?.data ?? res?.Data ?? res?.result ?? res?.Result ?? res;
+        const customerList = Array.isArray(normalized) ? normalized : (normalized?.users || normalized?.userlist || []);
+        if (isMounted) {
+          setCustomers(customerList);
+          setLoading(false);
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to fetch customers:', err);
+        if (isMounted) {
+          setCustomers(initialCustomers);
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(customers));
-  }, [customers]);
+  const safeRender = (value) => {
+    if (value === null || value === undefined) return '';
+    if (typeof value === 'object') {
+      return value.name ?? value.title ?? value.label ?? value._id ?? JSON.stringify(value);
+    }
+    return String(value);
+  };
 
-  const filteredCustomers = customers.filter(customer =>
-    customer.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    customer.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    customer.phone?.includes(searchTerm)
-  );
+  const filteredCustomers = useMemo(() => {
+    return customers.filter(customer => {
+      const name = safeRender(customer.name || customer.username || '').toLowerCase();
+      const email = safeRender(customer.email || '').toLowerCase();
+      const phone = safeRender(customer.phone || customer.mobile || '');
+      return name.includes(searchTerm.toLowerCase()) || 
+             email.includes(searchTerm.toLowerCase()) || 
+             phone.includes(searchTerm);
+    });
+  }, [customers, searchTerm]);
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -403,70 +430,89 @@ export default function Customers() {
               </tr>
             </thead>
             <tbody>
-              {filteredCustomers.map((customer, index) => (
-                <tr key={customer.id} className={`animate-fade-in ${!customer.isActive ? 'inactive' : ''}`} style={{ animationDelay: `${0.3 + index * 0.05}s`, opacity: 0, animationFillMode: 'forwards' }}>
-                  <td>
-                    <div className="customer-info">
-                      <div className="customer-avatar">
-                        <User size={20} />
-                      </div>
-                      <div>
-                        <div className="customer-name">{customer.name}</div>
-                        <div className="customer-id">ID: {customer.id}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td>
-                    <div className="customer-contact">
-                      <div className="contact-item">
-                        <Mail size={14} />
-                        <span>{customer.email}</span>
-                      </div>
-                      <div className="contact-item">
-                        <Phone size={14} />
-                        <span>{customer.phone}</span>
-                      </div>
-                    </div>
-                  </td>
-                  <td>
-                    <div className="customer-address">{customer.address}</div>
-                  </td>
-                  <td>
-                    <div className="customer-date">
-                      <Calendar size={14} />
-                      <span>{formatDate(customer.joinDate)}</span>
-                    </div>
-                  </td>
-                  <td>
-                    <span className="order-count">{customer.totalOrders || 0}</span>
-                  </td>
-                  <td>
-                    <span className="total-spent">{formatCurrency(customer.totalSpent || 0)}</span>
-                  </td>
-                  <td>
-                    <span className="loyalty-points">{customer.loyaltyPoints || 0}</span>
-                  </td>
-                  <td>
-                    <button
-                      className={`status-toggle ${customer.isActive ? 'active' : 'inactive'}`}
-                      onClick={() => toggleActive(customer.id)}
-                      title={customer.isActive ? 'Active' : 'Inactive'}
-                    >
-                      {customer.isActive ? 'Active' : 'Inactive'}
-                    </button>
-                  </td>
-                  <td>
-                    <div className="action-buttons">
-                      <button className="icon-button small" onClick={() => handleEdit(customer)} title="Edit">
-                        <Edit size={16} />
-                      </button>
-                      <button className="icon-button small danger" onClick={() => handleDelete(customer.id)} title="Delete">
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
+              {loading ? (
+                <tr>
+                  <td colSpan="9" style={{ textAlign: 'center', padding: '3rem' }}>
+                    <div className="loading-spinner">Loading customers...</div>
                   </td>
                 </tr>
-              ))}
+              ) : filteredCustomers.map((customer, index) => {
+                const id = customer._id || customer.id;
+                const name = customer.name || customer.username || 'Anonymous';
+                const email = customer.email || '-';
+                const phone = customer.phone || customer.mobile || '-';
+                const address = customer.address || customer.city || '-';
+                const date = customer.joinDate || customer.createdAt || customer.created_at;
+                const orders = customer.totalOrders || customer.order_count || 0;
+                const spent = customer.totalSpent || customer.total_purchase || 0;
+                const points = customer.loyaltyPoints || customer.points || 0;
+                const status = customer.isActive ?? (customer.status === 'Active' || customer.status === 1);
+
+                return (
+                  <tr key={`${id}-${index}`} className={`animate-fade-in ${!status ? 'inactive' : ''}`} style={{ animationDelay: `${0.3 + index * 0.05}s`, opacity: 0, animationFillMode: 'forwards' }}>
+                    <td>
+                      <div className="customer-info">
+                        <div className="customer-avatar">
+                          <User size={20} />
+                        </div>
+                        <div>
+                          <div className="customer-name">{safeRender(name)}</div>
+                          <div className="customer-id">ID: {safeRender(id)}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="customer-contact">
+                        <div className="contact-item">
+                          <Mail size={14} />
+                          <span>{safeRender(email)}</span>
+                        </div>
+                        <div className="contact-item">
+                          <Phone size={14} />
+                          <span>{safeRender(phone)}</span>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="customer-address">{safeRender(address)}</div>
+                    </td>
+                    <td>
+                      <div className="customer-date">
+                        <Calendar size={14} />
+                        <span>{formatDate(date)}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <span className="order-count">{orders}</span>
+                    </td>
+                    <td>
+                      <span className="total-spent">{formatCurrency(spent)}</span>
+                    </td>
+                    <td>
+                      <span className="loyalty-points">{points}</span>
+                    </td>
+                    <td>
+                      <button
+                        className={`status-toggle ${status ? 'active' : 'inactive'}`}
+                        onClick={() => toggleActive(id)}
+                        title={status ? 'Active' : 'Inactive'}
+                      >
+                        {status ? 'Active' : 'Inactive'}
+                      </button>
+                    </td>
+                    <td>
+                      <div className="action-buttons">
+                        <button className="icon-button small" onClick={() => handleEdit(customer)} title="Edit">
+                          <Edit size={16} />
+                        </button>
+                        <button className="icon-button small danger" onClick={() => handleDelete(id)} title="Delete">
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

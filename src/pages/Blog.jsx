@@ -1,5 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Search, Plus, FileText, Image, Edit, Trash2, Upload, X, Save } from 'lucide-react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
+import { Search, Plus, FileText, Image, Edit, Trash2, Upload, X, Save, HelpCircle } from 'lucide-react';
+import { api, endpoints } from '../api';
 import './Blog.css';
 
 const STORAGE_KEY = 'blog_posts_v1';
@@ -62,38 +63,61 @@ const initialBlogPosts = [
 
 export default function Blog() {
   const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPost, setEditingPost] = useState(null);
   const fileInputRef = useRef(null);
 
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    image: '',
-    metaTitle: '',
-    metaDescription: '',
-    metaKeywords: '',
-  });
-
   useEffect(() => {
-    const stored = safeParse(localStorage.getItem(STORAGE_KEY), null);
-    if (stored && stored.length > 0) {
-      setPosts(stored);
-    } else {
-      setPosts(initialBlogPosts);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(initialBlogPosts));
-    }
+    let isMounted = true;
+    setLoading(true);
+
+    api.get(endpoints.blog)
+      .then((res) => {
+        const normalized = res?.data ?? res?.Data ?? res?.result ?? res?.Result ?? res;
+        const faqList = Array.isArray(normalized) ? normalized : (normalized?.faqs || normalized?.faqlist || []);
+        if (isMounted) {
+          setPosts(faqList);
+          setLoading(false);
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to fetch FAQs:', err);
+        if (isMounted) {
+          setPosts(initialBlogPosts);
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(posts));
-  }, [posts]);
+  const safeRender = (value) => {
+    if (value === null || value === undefined) return '';
+    if (typeof value === 'object') {
+      return value.name ?? value.title ?? value.label ?? value._id ?? JSON.stringify(value);
+    }
+    return String(value);
+  };
 
-  const filteredPosts = posts.filter(post =>
-    post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    post.description.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const getImageUrl = (post) => {
+    const imagePath = post.imageUrl || post.image || post.faq_image || post.blog_image;
+    if (!imagePath) return null;
+    if (typeof imagePath === 'string' && imagePath.startsWith('http')) return imagePath;
+    const cleanPath = String(imagePath).startsWith('/') ? imagePath : `/${imagePath}`;
+    return `${IMAGE_BASE_URL}${cleanPath}`;
+  };
+
+  const filteredPosts = useMemo(() => {
+    return posts.filter(post => {
+      const question = safeRender(post.question || post.title || '').toLowerCase();
+      const answer = safeRender(post.answer || post.description || '').toLowerCase();
+      return question.includes(searchTerm.toLowerCase()) || answer.includes(searchTerm.toLowerCase());
+    });
+  }, [posts, searchTerm]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -176,8 +200,10 @@ export default function Blog() {
     setEditingPost(null);
   };
 
-  const formatDate = (timestamp) => {
-    return new Date(timestamp).toLocaleDateString('en-US', {
+  const formatDate = (dateStr) => {
+    if (!dateStr) return 'N/A';
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -203,7 +229,11 @@ export default function Blog() {
         </button>
       </div>
 
-      {posts.length === 0 ? (
+      {loading ? (
+        <div className="glass-panel blog-empty">
+          <div className="loading-spinner">Loading blog content...</div>
+        </div>
+      ) : posts.length === 0 ? (
         <div className="glass-panel blog-empty">
           <FileText size={48} />
           <h3>No blog posts yet</h3>
@@ -221,42 +251,49 @@ export default function Blog() {
         </div>
       ) : (
         <div className="blog-grid">
-          {filteredPosts.map((post, index) => (
-            <div
-              key={post.id}
-              className="glass-panel blog-card animate-fade-in"
-              style={{ animationDelay: `${0.3 + index * 0.1}s`, opacity: 0, animationFillMode: 'forwards' }}
-            >
-              <div className="blog-card-image">
-                {post.image ? (
-                  <img src={post.image} alt={post.title} />
-                ) : (
-                  <div className="blog-image-placeholder">
-                    <Image size={32} />
-                  </div>
-                )}
-              </div>
-              <div className="blog-card-content">
-                <h4 className="blog-card-title">{post.title}</h4>
-                <p className="blog-card-description">
-                  {post.description.length > 120
-                    ? `${post.description.substring(0, 120)}...`
-                    : post.description}
-                </p>
-                <div className="blog-card-meta">
-                  <span className="blog-date">{formatDate(post.createdAt)}</span>
-                  <div className="blog-card-actions">
-                    <button className="icon-button small" onClick={() => handleEdit(post)} title="Edit">
-                      <Edit size={16} />
-                    </button>
-                    <button className="icon-button small danger" onClick={() => handleDelete(post.id)} title="Delete">
-                      <Trash2 size={16} />
-                    </button>
+          {filteredPosts.map((post, index) => {
+            const id = post._id || post.id;
+            const title = post.question || post.title || 'Untitled';
+            const description = post.answer || post.description || '';
+            const date = post.createdAt || post.updatedAt;
+
+            return (
+              <div
+                key={`${id}-${index}`}
+                className="glass-panel blog-card animate-fade-in"
+                style={{ animationDelay: `${0.3 + index * 0.1}s`, opacity: 0, animationFillMode: 'forwards' }}
+              >
+                <div className="blog-card-image">
+                  {getImageUrl(post) ? (
+                    <img src={getImageUrl(post)} alt={title} />
+                  ) : (
+                    <div className="blog-image-placeholder">
+                      <HelpCircle size={32} />
+                    </div>
+                  )}
+                </div>
+                <div className="blog-card-content">
+                  <h4 className="blog-card-title">{safeRender(title)}</h4>
+                  <p className="blog-card-description">
+                    {safeRender(description).length > 120
+                      ? `${safeRender(description).substring(0, 120)}...`
+                      : safeRender(description)}
+                  </p>
+                  <div className="blog-card-meta">
+                    <span className="blog-date">{formatDate(date)}</span>
+                    <div className="blog-card-actions">
+                      <button className="icon-button small" onClick={() => handleEdit(post)} title="Edit">
+                        <Edit size={16} />
+                      </button>
+                      <button className="icon-button small danger" onClick={() => handleDelete(id)} title="Delete">
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

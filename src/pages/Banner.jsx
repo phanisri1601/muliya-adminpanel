@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Copy, Image as ImageIcon, Link2, Star, Trash2, Upload } from 'lucide-react';
+import { api, endpoints, IMAGE_BASE_URL } from '../api';
 import './Banner.css';
 
 const STORAGE_KEY = 'website_banners_v1';
@@ -16,23 +17,48 @@ function safeParse(json, fallback) {
 export default function Banner() {
   const fileInputRef = React.useRef(null);
   const [banners, setBanners] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [activeBannerId, setActiveBannerId] = useState(null);
   const [urlInput, setUrlInput] = useState('');
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    const stored = safeParse(localStorage.getItem(STORAGE_KEY), { banners: [], activeBannerId: null });
-    if (stored && stored.banners && stored.banners.length > 0) {
-      setBanners(stored.banners);
-      setActiveBannerId(stored.activeBannerId || stored.banners[0].id);
-    }
+    let isMounted = true;
+    setLoading(true);
+
+    api.get(endpoints.banner)
+      .then((res) => {
+        const normalized = res?.data ?? res?.Data ?? res?.result ?? res?.Result ?? res;
+        const bannerList = Array.isArray(normalized) ? normalized : (normalized?.bannerlist || normalized?.banners || []);
+        if (isMounted) {
+          setBanners(bannerList);
+          if (bannerList.length > 0) {
+            setActiveBannerId(bannerList[0]._id || bannerList[0].id);
+          }
+          setLoading(false);
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to fetch banners:', err);
+        if (isMounted) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ banners, activeBannerId }));
-  }, [banners, activeBannerId]);
+  const getImageUrl = (banner) => {
+    const imagePath = banner.imageUrl || banner.image || banner.src || banner.banner_image;
+    if (!imagePath) return null;
+    if (imagePath.startsWith('http')) return imagePath;
+    const cleanPath = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
+    return `${IMAGE_BASE_URL}${cleanPath}`;
+  };
 
-  const activeBanner = banners.find(banner => banner.id === activeBannerId);
+  const activeBanner = banners.find(banner => (banner._id || banner.id) === activeBannerId);
 
   const handleFileUpload = (event) => {
     const files = event.target.files;
@@ -122,7 +148,7 @@ export default function Banner() {
           <h3>Active Banner Preview</h3>
           <div className="banner-preview">
             {activeBanner ? (
-              <img src={activeBanner.src} alt={activeBanner.name} />
+              <img src={getImageUrl(activeBanner)} alt={activeBanner.name || activeBanner.title} />
             ) : (
               <div className="no-banner">
                 <ImageIcon size={48} />
@@ -134,11 +160,11 @@ export default function Banner() {
             <div className="banner-info">
               <div className="info-item">
                 <span className="info-label">Name:</span>
-                <span className="info-value">{activeBanner.name}</span>
+                <span className="info-value">{activeBanner.name || activeBanner.title || 'Untitled'}</span>
               </div>
               <div className="info-item">
                 <span className="info-label">Type:</span>
-                <span className="info-value">{activeBanner.type}</span>
+                <span className="info-value">{activeBanner.type || 'System'}</span>
               </div>
               <button className="btn-secondary" onClick={handleCopyUrl}>
                 <Copy size={16} />
@@ -151,60 +177,53 @@ export default function Banner() {
         <div className="banner-library-section">
           <div className="section-header">
             <h3>Banner Library ({banners.length})</h3>
-            <div className="url-input-group">
-              <div className="input-wrapper">
-                <Link2 size={18} />
-                <input
-                  type="text"
-                  value={urlInput}
-                  onChange={(e) => setUrlInput(e.target.value)}
-                  placeholder="Enter image URL..."
-                />
-              </div>
-              <button className="btn-secondary" onClick={handleUrlAdd}>
-                Add URL
-              </button>
-            </div>
+            {/* URL input group hidden for dynamic API view unless needed */}
           </div>
 
           <div className="banner-grid">
-            {banners.length === 0 ? (
+            {loading ? (
+              <div className="loading-state">
+                <div className="loading-spinner">Loading banners...</div>
+              </div>
+            ) : banners.length === 0 ? (
               <div className="empty-state">
                 <ImageIcon size={64} />
-                <h3>No banners uploaded</h3>
-                <p>Upload banner images or add URLs to get started</p>
+                <h3>No banners available</h3>
               </div>
             ) : (
-              banners.map(banner => (
-                <div 
-                  key={banner.id} 
-                  className={`banner-card ${banner.id === activeBannerId ? 'active' : ''}`}
-                >
-                  <div className="banner-image-wrapper">
-                    <img src={banner.src} alt={banner.name} />
-                    <div className="banner-overlay">
-                      <button 
-                        className="btn-icon"
-                        onClick={() => handleSetActiveBanner(banner.id)}
-                        title="Set as active banner"
-                      >
-                        <Star size={20} />
-                      </button>
-                      <button 
-                        className="btn-icon btn-danger"
-                        onClick={() => handleDeleteBanner(banner.id)}
-                        title="Delete banner"
-                      >
-                        <Trash2 size={20} />
-                      </button>
+              banners.map(banner => {
+                const bId = banner._id || banner.id;
+                return (
+                  <div 
+                    key={bId} 
+                    className={`banner-card ${bId === activeBannerId ? 'active' : ''}`}
+                  >
+                    <div className="banner-image-wrapper">
+                      <img src={getImageUrl(banner)} alt={banner.name || banner.title} />
+                      <div className="banner-overlay">
+                        <button 
+                          className="btn-icon"
+                          onClick={() => handleSetActiveBanner(bId)}
+                          title="Set as active banner"
+                        >
+                          <Star size={20} />
+                        </button>
+                        <button 
+                          className="btn-icon btn-danger"
+                          onClick={() => handleDeleteBanner(bId)}
+                          title="Delete banner"
+                        >
+                          <Trash2 size={20} />
+                        </button>
+                      </div>
+                    </div>
+                    <div className="banner-details">
+                      <h4>{banner.name || banner.title || 'Untitled'}</h4>
+                      {banner.createdAt && <p>Added: {new Date(banner.createdAt).toLocaleDateString()}</p>}
                     </div>
                   </div>
-                  <div className="banner-details">
-                    <h4>{banner.name}</h4>
-                    <p>Added: {new Date(banner.createdAt).toLocaleDateString()}</p>
-                  </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>
