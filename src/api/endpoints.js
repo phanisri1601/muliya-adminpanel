@@ -16,6 +16,8 @@ export const endpoints = {
   dashboard: orderListEndpoint('dashboard'),
   orders: orderListEndpoint('orders'),
   categories: '/category/categories',
+  make: '/material/getMaterials',
+  makecreate: '/material/createMaterial',
   banner: '/header/getbannerlist?lang=1',
   inventory: '/product/allProduct?lang=1',
   branches: orderListEndpoint('branches'),
