@@ -23,6 +23,7 @@ import UserRoles from './pages/UserRoles';
 import Reports from './pages/Reports';
 import Login from './pages/Login';
 import './App.css';
+import Make from './pages/Make';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -84,6 +85,8 @@ export default function App() {
         return <UserRoles />;
       case 'reports':
         return <Reports />;
+        case 'make':
+        return <Make />;
       default:
         return (
           <div className="glass-panel animate-fade-in placeholder-page" style={{ animationDelay: '0.4s' }}>

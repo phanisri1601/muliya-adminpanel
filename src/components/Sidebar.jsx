@@ -5,6 +5,7 @@ import './Sidebar.css';
 const navItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'orders', label: 'Orders', icon: ShoppingCart },
+  { id: 'make', label: 'make', icon: Grid },
   { id: 'categories', label: 'Categories', icon: Grid },
   { id: 'branches', label: 'Branches', icon: Building2 },
   { id: 'banner', label: 'Website Banner', icon: Image },
