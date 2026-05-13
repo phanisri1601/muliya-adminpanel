@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Lock, Mail } from 'lucide-react';
 import './Login.css';
 
-const API_BASE_URL =  'http://localhost:5000';
+const API_BASE_URL =  'https://muliya.ourapi.co.in';
 
 export default function Login({ onLogin }) {
   const [email, setEmail]       = useState('');
