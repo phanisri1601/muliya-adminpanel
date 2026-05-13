@@ -2,24 +2,48 @@ import React, { useState } from 'react';
 import { Lock, Mail } from 'lucide-react';
 import './Login.css';
 
-const DEMO_EMAIL = 'admin@muliya.com';
-const DEMO_PASSWORD = 'admin123';
+const API_BASE_URL =  'http://localhost:5000';
 
 export default function Login({ onLogin }) {
-  const [email, setEmail] = useState('');
+  const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [error, setError]       = useState('');
+  const [loading, setLoading]   = useState(false);
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
+    setError('');
+    setLoading(true);
 
-    if (email.trim() === DEMO_EMAIL && password === DEMO_PASSWORD) {
-      setError('');
-      onLogin();
-      return;
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/user/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        setError(data.message || 'Invalid credentials. Please try again.');
+        return;
+      }
+
+      // Only allow admins (UserType "2") or super-admins ("1") into the panel
+      if (data.UserType !== '1' && data.UserType !== '2') {
+        setError('Access denied. Admin accounts only.');
+        return;
+      }
+
+      // Pass userId and UserType up to the parent
+      onLogin(data.userId, data.UserType);
+
+    } catch (err) {
+      console.error('Login error:', err);
+      setError('Unable to reach the server. Please try again later.');
+    } finally {
+      setLoading(false);
     }
-
-    setError('Invalid credentials. Use the demo email and password shown below.');
   };
 
   return (
@@ -39,9 +63,10 @@ export default function Login({ onLogin }) {
               <input
                 type="email"
                 value={email}
-                onChange={(event) => setEmail(event.target.value)}
+                onChange={(e) => setEmail(e.target.value)}
                 placeholder="Enter your email"
                 required
+                disabled={loading}
               />
             </div>
           </label>
@@ -53,23 +78,24 @@ export default function Login({ onLogin }) {
               <input
                 type="password"
                 value={password}
-                onChange={(event) => setPassword(event.target.value)}
+                onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter your password"
                 required
+                disabled={loading}
               />
             </div>
           </label>
 
           {error && <p className="login-error">{error}</p>}
 
-          <button type="submit" className="button login-submit">
-            Sign In
+          <button
+            type="submit"
+            className="button login-submit"
+            disabled={loading}
+          >
+            {loading ? 'Signing in…' : 'Sign In'}
           </button>
         </form>
-
-        <p className="login-hint">
-          Demo credentials: <strong>{DEMO_EMAIL}</strong> / <strong>{DEMO_PASSWORD}</strong>
-        </p>
       </div>
     </div>
   );

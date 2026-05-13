@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import Dashboard from './pages/Dashboard';
@@ -26,16 +26,48 @@ import './App.css';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  // Check localStorage userId initially
+  const [isAuthenticated, setIsAuthenticated] = useState(
+    !!localStorage.getItem('userId')
+  );
+
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const handleLogin = () => {
-    setIsAuthenticated(true);
+  // Re-check authentication on app load
+  useEffect(() => {
+    const userId = localStorage.getItem('userId');
+
+    if (userId) {
+      setIsAuthenticated(true);
+    } else {
+      setIsAuthenticated(false);
+    }
+  }, []);
+
+  const handleLogin = (user, userType) => {
+    console.log('Logged in user:', user);
+
+    // Save user details
+    localStorage.setItem('isAuthenticated', 'true');
+    localStorage.setItem('userId', user);
+    localStorage.setItem('userType', userType);
+
+    // Check userId before authentication
+    if (user) {
+      setIsAuthenticated(true);
+    } else {
+      setIsAuthenticated(false);
+    }
   };
 
   const handleLogout = () => {
     setIsAuthenticated(false);
     setActiveTab('dashboard');
+
+    localStorage.removeItem('isAuthenticated');
+    localStorage.removeItem('userId');
+    localStorage.removeItem('userType');
   };
 
   const toggleMobileMenu = () => {
@@ -43,57 +75,83 @@ export default function App() {
   };
 
   const renderContent = () => {
-    switch(activeTab) {
+    switch (activeTab) {
       case 'dashboard':
         return <Dashboard />;
+
       case 'branches':
         return <Branches />;
+
       case 'inventory':
         return <Inventory />;
+
       case 'banner':
         return <Banner />;
+
       case 'blog':
         return <Blog />;
+
       case 'customers':
         return <Customers />;
+
       case 'employees':
         return <Employees />;
+
       case 'coupons':
         return <Coupons />;
+
       case 'reviews':
         return <Reviews />;
+
       case 'orders':
         return <Orders />;
+
       case 'categories':
         return <Categories />;
+
       case 'collections':
         return <Collections />;
+
       case 'careers':
         return <Careers />;
+
       case 'goldplans':
         return <GoldPlans />;
+
       case 'gold-rate':
         return <GoldRate />;
+
       case 'making-charges':
         return <MakingCharges />;
+
       case 'invoices':
         return <Invoices />;
+
       case 'returns-exchange':
         return <ReturnsExchange />;
+
       case 'user-roles':
         return <UserRoles />;
+
       case 'reports':
         return <Reports />;
+
       default:
         return (
-          <div className="glass-panel animate-fade-in placeholder-page" style={{ animationDelay: '0.4s' }}>
-            <h2>{activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Module</h2>
+          <div
+            className="glass-panel animate-fade-in placeholder-page"
+            style={{ animationDelay: '0.4s' }}
+          >
+            <h2>
+              {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Module
+            </h2>
             <p>This module is currently under construction.</p>
           </div>
         );
     }
   };
 
+  // If no userId, show login
   if (!isAuthenticated) {
     return <Login onLogin={handleLogin} />;
   }
@@ -101,9 +159,12 @@ export default function App() {
   return (
     <div className="app-container">
       <div
-        className={`mobile-sidebar-overlay ${isMobileMenuOpen ? 'active' : ''}`}
+        className={`mobile-sidebar-overlay ${
+          isMobileMenuOpen ? 'active' : ''
+        }`}
         onClick={() => setIsMobileMenuOpen(false)}
       />
+
       <Sidebar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -113,7 +174,11 @@ export default function App() {
       />
 
       <main className="main-content">
-        <Header activeTab={activeTab} onMenuToggle={toggleMobileMenu} />
+        <Header
+          activeTab={activeTab}
+          onMenuToggle={toggleMobileMenu}
+        />
+
         <div className="page-content">
           {renderContent()}
         </div>
