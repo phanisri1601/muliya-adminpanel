@@ -25,11 +25,12 @@
 }
 
 .add-category-btn {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1.5rem;
   white-space: nowrap;
+  height: auto;
 }
 
 .categories-panel {
@@ -216,4 +217,57 @@
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+}
+
+/* Ant Design table + form inside Categories */
+.categories-ant-table .ant-table {
+  background: transparent;
+  color: var(--text-primary);
+}
+
+.categories-ant-table .ant-table-thead > tr > th {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-secondary);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.categories-ant-table .ant-table-tbody > tr > td {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.categories-ant-table .ant-table-tbody > tr:hover > td {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.categories-ant-table .ant-pagination {
+  margin-top: 1rem;
+}
+
+.categories-ant-table .ant-pagination-item a,
+.categories-ant-table .ant-pagination-item-link {
+  color: var(--text-secondary);
+}
+
+.categories-table-thumb {
+  max-width: 50px;
+  max-height: 50px;
+  object-fit: cover;
+  border-radius: 6px;
+  vertical-align: middle;
+}
+
+.categories-table-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.categories-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 0 1.25rem;
+}
+
+.categories-edit-form .ant-form-item-label > label {
+  color: var(--text-primary);
 }

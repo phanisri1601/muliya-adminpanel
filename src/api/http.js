@@ -1,5 +1,54 @@
 import { API_BASE_URL } from './config';
 
+/** Turn API JSON/text errors into a readable string (avoids `Error: [object Object]`). */
+function formatErrorMessage(body, status, statusText) {
+  const fallback = statusText || `Request failed (${status})`;
+
+  if (body == null || body === '') return fallback;
+  if (typeof body === 'string') {
+    const t = body.trim();
+    return t ? t.slice(0, 600) : fallback;
+  }
+  if (typeof body !== 'object') return String(body);
+
+  const pick = (val) => {
+    if (val == null) return '';
+    if (typeof val === 'string') return val.trim();
+    if (typeof val === 'number' || typeof val === 'boolean') return String(val);
+    if (Array.isArray(val)) return val.map((x) => pick(x)).filter(Boolean).join('; ').slice(0, 600);
+    if (typeof val === 'object') {
+      try {
+        return JSON.stringify(val).slice(0, 500);
+      } catch {
+        return '';
+      }
+    }
+    return String(val);
+  };
+
+  const direct =
+    pick(body.message) ||
+    pick(body.error) ||
+    pick(body.msg) ||
+    pick(body.err) ||
+    pick(body.description);
+  if (direct) return direct.slice(0, 600);
+
+  if (body.errors && typeof body.errors === 'object') {
+    const nested = pick(body.errors);
+    if (nested) return nested.slice(0, 600);
+  }
+
+  try {
+    const s = JSON.stringify(body);
+    if (s && s !== '{}') return s.slice(0, 600);
+  } catch {
+    /* ignore */
+  }
+
+  return fallback;
+}
+
 function buildUrl(path) {
   const p = String(path ?? '');
   if (/^https?:\/\//i.test(p)) return p;
@@ -13,11 +62,15 @@ async function parseResponse(response) {
   const body = isJson ? await response.json().catch(() => null) : await response.text().catch(() => '');
 
   if (!response.ok) {
-    const message =
-      (body && typeof body === 'object' && (body.message || body.error)) ||
-      (typeof body === 'string' && body) ||
-      response.statusText ||
-      'Request failed';
+    if (response.status === 413) {
+      const err = new Error(
+        'Upload too large (413). Try smaller images, or ask the server admin to raise the body size limit.'
+      );
+      err.status = 413;
+      err.body = body;
+      throw err;
+    }
+    const message = formatErrorMessage(body, response.status, response.statusText);
     const error = new Error(message);
     error.status = response.status;
     error.body = body;
@@ -37,12 +90,23 @@ export async function apiRequest(path, { method = 'GET', headers, body, token, .
     ...(headers ?? {}),
   };
 
-  const response = await fetch(url, {
-    method,
-    headers: finalHeaders,
-    body: body == null ? undefined : body instanceof FormData ? body : JSON.stringify(body),
-    ...rest,
-  });
+  let response;
+  try {
+    response = await fetch(url, {
+      method,
+      headers: finalHeaders,
+      body: body == null ? undefined : body instanceof FormData ? body : JSON.stringify(body),
+      ...rest,
+    });
+  } catch (e) {
+    const err = new Error(
+      e?.message === 'Failed to fetch'
+        ? 'Network error (often CORS or offline). In local dev, use the Vite `/api` proxy; in production the API must allow your site origin.'
+        : e?.message || 'Network request failed'
+    );
+    err.cause = e;
+    throw err;
+  }
 
   return parseResponse(response);
 }

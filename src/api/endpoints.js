@@ -17,6 +17,7 @@ export const endpoints = {
   orders: orderListEndpoint('orders'),
   categories: '/category/categories',
   Addcategories: '/category/addcategories',
+  putcategories: '/category/putcategories',
   banner: '/header/getbannerlist',
   inventory: '/product/allProduct?lang=1',
   branches: 'branches/getBranches',

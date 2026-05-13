@@ -1,45 +1,215 @@
-import React, { useEffect, useState, useMemo } from 'react';
-import { Search, Grid, Plus, Edit, Trash2, Eye, Filter, ArrowLeft, Image as ImageIcon, CheckCircle, Clock, XCircle } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  Table,
+  Button,
+  Modal,
+  Switch,
+  Form,
+  Input,
+  Upload,
+  message,
+} from 'antd';
+import { UploadOutlined, DeleteFilled, PlusOutlined } from '@ant-design/icons';
+import { Search } from 'lucide-react';
 import { api, endpoints, IMAGE_BASE_URL } from '../api';
+import { compressImageForUpload } from '../utils/imageCompress';
 import './Categories.css';
+
+const { confirm } = Modal;
+
+/** Matches other admin calls (e.g. add category / inventory `lang=1`). */
+const CATEGORY_LANG = '1';
+
+const EXCLUDED_FORM_KEYS = ['_id', 'createdBy', 'createdAt', '__v', 'lang', 'updatedAt'];
+
+const EMPTY_CATEGORY = {
+  name: '',
+  description: '',
+  imageUrl: '',
+  category_img_desktop: '',
+  category_img_mobile: '',
+  isActive: true,
+};
+
+function toFormImage(path) {
+  if (!path || typeof path !== 'string') return '';
+  if (path.startsWith('http') || path.startsWith('blob:')) return path;
+  const clean = path.startsWith('/') ? path : `/${path}`;
+  return `${IMAGE_BASE_URL}${clean}`;
+}
+
+function formatDisplayDate(value) {
+  if (!value) return '';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '';
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yyyy = d.getFullYear();
+  return `${dd}-${mm}-${yyyy}`;
+}
+
+function CustomImageUpload({ value, onChange }) {
+  const [fileList, setFileList] = useState([]);
+
+  useEffect(() => {
+    if (!value) {
+      setFileList([]);
+      return;
+    }
+    if (value instanceof File) {
+      const url = URL.createObjectURL(value);
+      setFileList([
+        {
+          uid: '1',
+          name: value.name,
+          status: 'done',
+          originFileObj: value,
+          url,
+        },
+      ]);
+      return () => URL.revokeObjectURL(url);
+    }
+    if (typeof value === 'string' && value) {
+      setFileList([{ uid: '-1', name: 'image', status: 'done', url: value }]);
+    }
+  }, [value]);
+
+  const handleChange = ({ fileList: fl }) => {
+    setFileList(fl);
+    if (!fl.length) {
+      onChange?.(null);
+      return;
+    }
+    const raw = fl[0]?.originFileObj;
+    if (raw) {
+      onChange?.(raw);
+    } else if (fl[0]?.url) {
+      onChange?.(fl[0].url);
+    }
+  };
+
+  return (
+    <Upload
+      accept=".jpg,.jpeg,.png"
+      fileList={fileList}
+      maxCount={1}
+      customRequest={({ onSuccess }) => {
+        setTimeout(() => onSuccess?.('ok'), 0);
+      }}
+      onChange={handleChange}
+    >
+      <Button icon={<UploadOutlined />}>Upload Image</Button>
+    </Upload>
+  );
+}
+
+function EditModal({ open, data, onClose, onSave }) {
+  const [form] = Form.useForm();
+
+  useEffect(() => {
+    if (open && data && typeof data === 'object') {
+      form.setFieldsValue(data);
+    }
+  }, [open, data, form]);
+
+  const handleSave = () => {
+    form
+      .validateFields()
+      .then(async (values) => {
+        try {
+          await onSave(values);
+          form.resetFields();
+          onClose();
+        } catch {
+          /* Parent shows error message; keep modal open. */
+        }
+      })
+      .catch(() => {
+        message.error('Please fix validation errors.');
+      });
+  };
+
+  const entries = useMemo(() => {
+    if (!data || typeof data !== 'object') return [];
+    return Object.entries({ ...EMPTY_CATEGORY, ...data }).filter(
+      ([key]) => !EXCLUDED_FORM_KEYS.includes(key)
+    );
+  }, [data]);
+
+  const isEdit = Boolean(data?._id);
+
+  return (
+    <Modal
+      title={isEdit ? 'Edit Category' : 'Add Category'}
+      open={open}
+      onCancel={onClose}
+      width={1000}
+      footer={[
+        <Button key="cancel" onClick={onClose}>
+          Cancel
+        </Button>,
+        <Button key="save" type="primary" onClick={handleSave}>
+          Save
+        </Button>,
+      ]}
+    >
+      <Form form={form} layout="vertical" className="categories-edit-form">
+        <div className="categories-form-grid">
+          {entries.map(([key, value]) => (
+            <Form.Item
+              className="categories-form-field"
+              key={key}
+              label={key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' ')}
+              name={key}
+              valuePropName={key === 'isActive' ? 'checked' : undefined}
+              rules={
+                key === 'name'
+                  ? [{ required: true, message: 'Name is required' }]
+                  : undefined
+              }
+            >
+              {key === 'isActive' ? (
+                <Switch size="small" />
+              ) : ['imageUrl', 'category_img_desktop', 'category_img_mobile'].includes(key) ? (
+                <CustomImageUpload />
+              ) : (
+                <Input />
+              )}
+            </Form.Item>
+          ))}
+        </div>
+      </Form>
+    </Modal>
+  );
+}
 
 export default function Categories() {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [isMounted, setIsMounted] = useState(true);
-  const [showModal, setShowModal] = useState(false);
-const [editingCategory, setEditingCategory] = useState(null);
-const [formData, setFormData] = useState({
-  name: '',
-  description: '',
-  image: null,
-});
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editData, setEditData] = useState({ ...EMPTY_CATEGORY });
+
+  const fetchCategories = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await api.get(endpoints.categories);
+      const normalized = res?.data ?? res?.Data ?? res?.result ?? res?.Result ?? res;
+      const categoryList = Array.isArray(normalized)
+        ? normalized
+        : normalized?.categories || [];
+      setCategories(categoryList);
+    } catch (err) {
+      console.error('Failed to fetch categories:', err);
+      message.error('Failed to load categories.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    let mounted = true;
-    setLoading(true);
-
-    api.get(endpoints.categories)
-      .then((res) => {
-        const normalized = res?.data ?? res?.Data ?? res?.result ?? res?.Result ?? res;
-        const categoryList = Array.isArray(normalized) ? normalized : (normalized?.categories || []);
-        if (mounted) {
-          setCategories(categoryList);
-          setLoading(false);
-        }
-      })
-      .catch((err) => {
-        console.error('Failed to fetch categories:', err);
-        if (mounted) {
-          setLoading(false);
-        }
-      });
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
+    fetchCategories();
+  }, [fetchCategories]);
 
   const safeRender = (value) => {
     if (value === null || value === undefined) return '';
@@ -52,136 +222,192 @@ const [formData, setFormData] = useState({
   const getImageUrl = (category) => {
     const imagePath = category.imageUrl || category.image;
     if (!imagePath) return null;
-    if (imagePath.startsWith('http')) return imagePath;
+    if (typeof imagePath === 'string' && imagePath.startsWith('http')) return imagePath;
     const cleanPath = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
     return `${IMAGE_BASE_URL}${cleanPath}`;
   };
 
-  const handleChange = (e) => {
-  const { name, value, files } = e.target;
-
-  if (files) {
-    setFormData((prev) => ({
-      ...prev,
-      [name]: files[0],
-    }));
-  } else {
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  }
-};
-
-const handleAddCategory = async () => {
-  try {
-    const data = new FormData();
-
-    data.append('name', formData.name);
-    data.append('description', formData.description);
-
-    if (formData.image) {
-      data.append('imageFile', formData.image);
-    }
-
-    const res = await api.post(endpoints.Addcategories, data, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
+  const showDeleteConfirm = (record) => {
+    confirm({
+      title: 'Delete this category?',
+      icon: <DeleteFilled />,
+      content: `This will remove "${safeRender(record.name)}". This action cannot be undone.`,
+      okText: 'Yes, delete',
+      okType: 'danger',
+      cancelText: 'Cancel',
+      async onOk() {
+        try {
+          await api.delete(`${endpoints.categories}/${record._id}`);
+          message.success('Category deleted.');
+          await fetchCategories();
+        } catch (error) {
+          console.error(error);
+          message.error('Failed to delete category.');
+          throw error;
+        }
       },
     });
+  };
 
-    setCategories((prev) => [...prev, res.data.category]);
-
-    setShowModal(false);
-
-    setFormData({
-      name: '',
-      description: '',
-      image: null,
-    });
-
-  } catch (error) {
-    console.error(error);
-  }
-};
-
-const handleEditClick = (category) => {
-  setEditingCategory(category);
-
-  setFormData({
-    name: category.name || '',
-    description: category.description || '',
-    image: null,
-  });
-
-  setShowModal(true);
-};
-
-const handleUpdateCategory = async () => {
-  try {
-    const data = new FormData();
-
-    data.append('name', formData.name);
-    data.append('description', formData.description);
-
-    if (formData.image) {
-      data.append('imageFile', formData.image);
+  const handleToggleActive = async (record, checked) => {
+    try {
+      const data = new FormData();
+      data.append('name', record.name || '');
+      data.append('description', record.description || '');
+      data.append('isActive', String(checked));
+      data.append('createdBy', localStorage.getItem('userId') || '1');
+      data.append('lang', CATEGORY_LANG);
+      await api.put(`${endpoints.putcategories}/${record._id}`, data);
+      message.success('Status updated.');
+      await fetchCategories();
+    } catch (error) {
+      console.error(error);
+      message.error('Failed to update active status.');
     }
+  };
 
-    const res = await api.put(
-      `${endpoints.categories}/${editingCategory._id}`,
-      data,
-      {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+  const handleEdit = (record) => {
+    setEditData({
+      ...EMPTY_CATEGORY,
+      ...record,
+      imageUrl: toFormImage(record.imageUrl || record.image || ''),
+      category_img_desktop: toFormImage(record.category_img_desktop || ''),
+      category_img_mobile: toFormImage(record.category_img_mobile || ''),
+    });
+    setEditModalOpen(true);
+  };
+
+  const handleAddClick = () => {
+    setEditData({ ...EMPTY_CATEGORY });
+    setEditModalOpen(true);
+  };
+
+  const appendFileIfNeeded = (formData, fieldName, value) => {
+    if (value instanceof File) {
+      formData.append(fieldName, value);
+    }
+  };
+
+  const handleSaveEdit = async (edited) => {
+    const [imageUrl, category_img_desktop, category_img_mobile] = await Promise.all([
+      edited.imageUrl instanceof File ? compressImageForUpload(edited.imageUrl) : edited.imageUrl,
+      edited.category_img_desktop instanceof File
+        ? compressImageForUpload(edited.category_img_desktop)
+        : edited.category_img_desktop,
+      edited.category_img_mobile instanceof File
+        ? compressImageForUpload(edited.category_img_mobile)
+        : edited.category_img_mobile,
+    ]);
+
+    const formData = new FormData();
+    formData.append('name', edited.name ?? '');
+    formData.append('description', edited.description ?? '');
+    formData.append('isActive', String(edited.isActive ?? true));
+    formData.append('createdBy', localStorage.getItem('userId') || '1');
+    formData.append('lang', CATEGORY_LANG);
+
+    appendFileIfNeeded(formData, 'imageFile', imageUrl);
+    appendFileIfNeeded(formData, 'ImgDesktop', category_img_desktop);
+    appendFileIfNeeded(formData, 'ImgMobile', category_img_mobile);
+
+    try {
+      if (editData._id) {
+        await api.put(`${endpoints.categories}/${editData._id}`, formData);
+        message.success('Category updated.');
+      } else {
+        await api.post("https://muliya.ourapi.co.in/api/category/addcategories", formData);
+        message.success('Category added.');
       }
-    );
-
-    setCategories((prev) =>
-      prev.map((item) =>
-        item._id === editingCategory._id
-          ? res.data.category
-          : item
-      )
-    );
-
-    setShowModal(false);
-    setEditingCategory(null);
-
-  } catch (error) {
-    console.error(error);
-  }
-};
-
-const handleDeleteCategory = async (id) => {
-  const confirmDelete = window.confirm(
-    'Are you sure you want to delete this category?'
-  );
-
-  if (!confirmDelete) return;
-
-  try {
-    await api.delete(`${endpoints.categories}/${id}`);
-
-    setCategories((prev) =>
-      prev.filter((item) => item._id !== id)
-    );
-
-  } catch (error) {
-    console.error(error);
-  }
-};
+      await fetchCategories();
+    } catch (error) {
+      console.error(error);
+      message.error(
+        error?.message ||
+          (editData._id ? 'Failed to update category.' : 'Failed to add category.')
+      );
+      throw error;
+    }
+  };
 
   const filteredCategories = useMemo(() => {
-    return categories.filter(category => {
+    const q = searchTerm.trim().toLowerCase();
+    if (!q) return categories;
+    return categories.filter((category) => {
       const name = safeRender(category.name || category.category_name).toLowerCase();
       const id = safeRender(category._id || category.id).toLowerCase();
-      return name.includes(searchTerm.toLowerCase()) || id.includes(searchTerm.toLowerCase());
+      return name.includes(q) || id.includes(q);
     });
   }, [categories, searchTerm]);
 
-  if (loading) {
+  const columns = [
+    {
+      title: 'Name',
+      dataIndex: 'name',
+      key: 'name',
+      render: (text) => safeRender(text),
+    },
+    {
+      title: 'Description',
+      dataIndex: 'description',
+      key: 'description',
+      ellipsis: true,
+      render: (text) => safeRender(text),
+    },
+    {
+      title: 'Image',
+      dataIndex: 'imageUrl',
+      key: 'imageUrl',
+      render: (_, record) => {
+        const src = getImageUrl(record);
+        if (!src) return '—';
+        return (
+          <img
+            src={src}
+            alt=""
+            className="categories-table-thumb"
+          />
+        );
+      },
+    },
+    {
+      title: 'Active',
+      dataIndex: 'isActive',
+      key: 'isActive',
+      render: (isActive, record) => (
+        <Switch
+          checked={Boolean(isActive)}
+          size="small"
+          onChange={(checked) => handleToggleActive(record, checked)}
+        />
+      ),
+    },
+    {
+      title: 'Created At',
+      dataIndex: 'createdAt',
+      key: 'createdAt',
+      render: (createdAt) => formatDisplayDate(createdAt),
+    },
+    {
+      title: 'Actions',
+      key: 'actions',
+      render: (_, record) => (
+        <div className="categories-table-actions">
+          <Button
+            type="default"
+            size="small"
+            onClick={() => handleEdit(record)}
+          >
+            Edit
+          </Button>
+          <Button danger size="small" onClick={() => showDeleteConfirm(record)}>
+            Delete
+          </Button>
+        </div>
+      ),
+    },
+  ];
+
+  if (loading && !categories.length) {
     return (
       <div className="categories-container animate-fade-in">
         <div className="loading-spinner-container">
@@ -200,136 +426,34 @@ const handleDeleteCategory = async (id) => {
             <Search size={18} className="search-icon" />
             <input
               type="text"
-              placeholder="Search by category name or ID..."
+              placeholder="Search by name or ID..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <button
-  className="button button-primary add-category-btn"
-  onClick={() => {
-    setEditingCategory(null);
-
-    setFormData({
-      name: '',
-      description: '',
-      image: null,
-    });
-
-    setShowModal(true);
-  }}
->
-            <Plus size={18} />
+          <Button type="primary" className="add-category-btn" icon={<PlusOutlined />} onClick={handleAddClick}>
             Add Category
-          </button>
+          </Button>
         </div>
       </div>
 
-      <div className="glass-panel categories-panel">
-        <div className="categories-grid">
-          {filteredCategories.map((category, index) => (
-            <div 
-              key={category._id || category.id || index} 
-              className="category-card animate-fade-in"
-              style={{ animationDelay: `${0.1 + index * 0.05}s`, opacity: 0, animationFillMode: 'forwards' }}
-            >
-              <div className="category-image">
-                {(category.imageUrl || category.image) ? (
-                  <img src={getImageUrl(category)} alt={category.name} />
-                ) : (
-                  <div className="category-image-placeholder">
-                    <Grid size={32} />
-                  </div>
-                )}
-              </div>
-              <div className="category-info">
-                <h3 className="category-name">{safeRender(category.name || category.category_name)}</h3>
-                <p className="category-id">ID: {safeRender(category._id || category.id)}</p>
-                {category.description && (
-                  <p className="category-description">{safeRender(category.description)}</p>
-                )}
-              </div>
-              <div className="category-card-actions">
-              <button
-  className="category-action-btn edit"
-  title="Edit"
-  onClick={() => handleEditClick(category)}
->
-                  <Edit size={16} />
-                </button>
-               <button
-  className="category-action-btn delete"
-  title="Delete"
-  onClick={() => handleDeleteCategory(category._id)}
->
-                  <Trash2 size={16} />
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {filteredCategories.length === 0 && (
-          <div className="categories-empty">
-            <Grid size={48} />
-            <h3>No categories found</h3>
-            <p>Try adjusting your search or add a new category.</p>
-          </div>
-        )}
+      <div className="glass-panel categories-panel categories-ant-table">
+        <Table
+          rowKey={(row) => row._id || row.id}
+          loading={loading}
+          dataSource={filteredCategories}
+          columns={columns}
+          pagination={{ pageSize: 10 }}
+          locale={{ emptyText: 'No categories found' }}
+        />
       </div>
 
-      {showModal && (
-  <div className="modal-overlay">
-    <div className="modal-box">
-
-      <h2>
-        {editingCategory ? 'Edit Category' : 'Add Category'}
-      </h2>
-
-      <input
-        type="text"
-        name="name"
-        placeholder="Category Name"
-        value={formData.name}
-        onChange={handleChange}
+      <EditModal
+        open={editModalOpen}
+        data={editData}
+        onClose={() => setEditModalOpen(false)}
+        onSave={handleSaveEdit}
       />
-
-      <textarea
-        name="description"
-        placeholder="Description"
-        value={formData.description}
-        onChange={handleChange}
-      />
-
-      <input
-        type="file"
-        name="image"
-        onChange={handleChange}
-      />
-
-      <div className="modal-actions">
-        <button
-          onClick={() => setShowModal(false)}
-          className="button"
-        >
-          Cancel
-        </button>
-
-        <button
-          className="button button-primary"
-          onClick={
-            editingCategory
-              ? handleUpdateCategory
-              : handleAddCategory
-          }
-        >
-          {editingCategory ? 'Update' : 'Add'}
-        </button>
-      </div>
-
-    </div>
-  </div>
-)}
     </div>
   );
 }
