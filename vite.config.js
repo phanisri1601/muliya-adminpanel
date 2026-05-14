@@ -1,16 +1,21 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
   server: {
+    host: true,
     proxy: {
-      // Same-origin in dev → avoids CORS. Backend must still accept upload size (see image compression).
       '/api': {
-        target: 'https://muliya.ourapi.co.in',
+        target: 'http://192.168.88.117:5000',
         changeOrigin: true,
-        secure: true,
+        secure: false,
+      },
+
+      '/image': {
+        target: 'http://192.168.88.117:5000',
+        changeOrigin: true,
+        secure: false,
       },
     },
   },
