@@ -1,4 +1,4 @@
-const REMOTE_API_BASE = 'https://192.168.88.117:5000/api';
+const REMOTE_API_BASE = 'https://muliya.ourapi.co.in/api';
 
 function resolveApiBaseUrl() {
   const fromEnv = import.meta.env.VITE_API_BASE_URL;

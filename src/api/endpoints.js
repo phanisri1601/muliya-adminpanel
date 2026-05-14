@@ -23,6 +23,7 @@ export const endpoints = {
   branches: 'branches/getBranches',
   login: 'user/login',
   branchescreate: 'branches/createBranch',
+  branchesDelete: 'branches/deleteBranch',
   blog: '/faq/allfaq',
   coupons: '/coupon/GetCoupon',
   customers: '/user/list',

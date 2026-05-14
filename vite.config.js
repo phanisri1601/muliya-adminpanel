@@ -7,13 +7,13 @@ export default defineConfig({
     host: true,
     proxy: {
       '/api': {
-        target: 'http://192.168.88.117:5000',
+        target: 'https://muliya.ourapi.co.in',
         changeOrigin: true,
         secure: false,
       },
 
       '/image': {
-        target: 'http://192.168.88.117:5000',
+        target: 'https://muliya.ourapi.co.in',
         changeOrigin: true,
         secure: false,
       },
