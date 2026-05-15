@@ -221,31 +221,38 @@ export default function Branches() {
       </div>
 
       <div className="branches-list">
-        {filteredBranches.map((branch) => {
+        {filteredBranches.map((branch, branchIndex) => {
           const branchId = getBranchId(branch);
+          const embedSrc = getGoogleMapsEmbedSrc(branch);
+          const isReverse = branchIndex % 2 === 1;
 
           return (
-            <div className="branch-block" key={branchId ?? branch.name}>
-              <div className="branch-header">
-              <div className="branch-image-container">
-                  {branch.image ? (
-                    <img src={branch.image} alt="" className="branch-image" />
-                  ) : (
-                    <div className="branch-image-placeholder">
-                      <ImageIcon size={30} />
-                    </div>
-                  )}
-                </div>
+            <div
+              className={`branch-block branch-split-card${isReverse ? ' branch-split-card-reverse' : ''}`}
+              key={branchId ?? branch.name}
+            >
+              <div className="branch-content-panel">
+                <div className="branch-header">
+                  <div className="branch-image-container">
+                    {branch.image ? (
+                      <img src={branch.image} alt="" className="branch-image" />
+                    ) : (
+                      <div className="branch-image-placeholder">
+                        <ImageIcon size={30} />
+                      </div>
+                    )}
+                  </div>
 
-                <div className="branch-info">
-                  <h4 className="branch-name">{branch.name}</h4>
+                  <div className="branch-info">
+                    <h4 className="branch-name">{branch.name}</h4>
 
-                  <div className="branch-details">
-                    <div className="branch-detail-item">
-                      <MapPin size={14} /> {branch.address}
-                    </div>
-                    <div className="branch-detail-item">
-                      <Phone size={14} /> {branch.phone}
+                    <div className="branch-details">
+                      <div className="branch-detail-item">
+                        <MapPin size={14} /> {branch.address}
+                      </div>
+                      <div className="branch-detail-item">
+                        <Phone size={14} /> {branch.phone}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -280,18 +287,23 @@ export default function Branches() {
                 </div>
               </div>
 
-              {getGoogleMapsEmbedSrc(branch) && (
-                <div style={{ marginTop: '10px' }}>
+              <div className="branch-map-panel">
+                {embedSrc ? (
                   <iframe
-                    src={getGoogleMapsEmbedSrc(branch)}
+                    src={embedSrc}
                     width="100%"
-                    height="200"
-                    style={{ border: 0, borderRadius: '10px' }}
+                    height="100%"
+                    style={{ border: 0 }}
                     loading="lazy"
-                    title="map"
+                    title={`${branch.name} map`}
                   />
-                </div>
-              )}
+                ) : (
+                  <div className="branch-map-empty">
+                    <MapPin size={28} />
+                    <span>No map link available</span>
+                  </div>
+                )}
+              </div>
             </div>
           );
         })}
